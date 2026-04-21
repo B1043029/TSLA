@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TSLA Options Trading Terminal v3</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090f;--s1:#0d1117;--s2:#161b26;--s3:#1c2333;--s4:#21283a;
+  --bdr:#2a3550;
+  --blue:#3b82f6;--blue2:#60a5fa;
+  --green:#10b981;--green2:#34d399;
+  --red:#ef4444;--red2:#f87171;
+  --yellow:#f59e0b;--yellow2:#fbbf24;
+  --purple:#8b5cf6;--purple2:#a78bfa;
+  --cyan2:#22d3ee;
+  --text:#e2e8f0;--sub:#94a3b8;--muted:#4b6280;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:13px;line-height:1.5}
+.topbar{background:var(--s1);border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 20px;height:48px;gap:0;flex-wrap:wrap}
+.tb-brand{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--blue2);letter-spacing:.04em;padding-right:20px;border-right:1px solid var(--bdr);margin-right:20px}
+.tb-stat{display:flex;flex-direction:column;padding:0 14px;border-right:1px solid var(--bdr)}
+.tb-stat:last-of-type{border-right:none}
+.tb-k{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.tb-v{font-family:var(--mono);font-size:13px;font-weight:500;margin-top:1px}
+.spacer{flex:1}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;margin-right:6px}
+.live-txt{font-size:10px;color:var(--green);font-family:var(--mono);letter-spacing:.1em}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.nav{background:var(--s1);border-bottom:1px solid var(--bdr);display:flex;padding:0 20px;gap:2px}
+.nav-tab{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;color:var(--sub);padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.nav-tab.on{color:var(--blue2);border-bottom-color:var(--blue)}
+.nav-tab:hover:not(.on){color:var(--text)}
+.main{padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+.panel{display:none}.panel.on{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:14px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--s2);border:1px solid var(--bdr);border-radius:8px;padding:14px}
+.ch{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bdr)}
+.kpi-grid{display:grid;gap:10px}
+.kpi{background:var(--s3);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px}
+.kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.kpi-val{font-family:var(--mono);font-size:20px;font-weight:600}
+.kpi-sub{font-size:10px;color:var(--sub);margin-top:2px;font-family:var(--mono)}
+.fl{display:flex;flex-direction:column;gap:3px;flex:1}
+.fl label{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.08em}
+.fl input,.fl select{font-family:var(--mono);font-size:12px;background:var(--s4);border:1px solid var(--bdr);color:var(--text);padding:7px 9px;border-radius:5px;outline:none;width:100%}
+.fl input:focus,.fl select:focus{border-color:var(--blue)}
+.fl input:disabled{opacity:.35;cursor:not-allowed;background:var(--s3)}
+.form-row{display:flex;gap:10px;flex-wrap:wrap}
+.seg{display:flex;border:1px solid var(--bdr);border-radius:5px;overflow:hidden}
+.seg button{font-family:var(--mono);font-size:11px;font-weight:500;background:transparent;border:none;color:var(--sub);padding:7px 14px;cursor:pointer;transition:all .15s;flex:1}
+.seg button.on{background:var(--blue);color:#fff}
+.seg button.on-sell{background:var(--red);color:#fff}
+.btn{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:none;border-radius:5px;padding:8px 16px;cursor:pointer;transition:all .15s}
+.btn-buy{background:var(--green);color:#022c22}
+.btn-sell{background:var(--red);color:#fff}
+.btn-sim{background:var(--purple);color:#fff}
+.btn-clear{background:transparent;border:1px solid var(--bdr);color:var(--sub)}
+.btn:hover{filter:brightness(1.1)}
+.btn-full{width:100%}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--bdr);white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px solid var(--bdr);font-family:var(--mono);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--s3)}
+.badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;font-family:var(--mono);letter-spacing:.04em}
+.b-call{background:rgba(59,130,246,.15);color:var(--blue2)}
+.b-put{background:rgba(239,68,68,.15);color:var(--red2)}
+.b-stk{background:rgba(16,185,129,.15);color:var(--green2)}
+.b-long{background:rgba(16,185,129,.12);color:var(--green2)}
+.b-short{background:rgba(245,158,11,.12);color:#fbbf24}
+.greek-card{background:var(--s3);border:1px solid var(--bdr);border-radius:6px;padding:12px;text-align:center}
+.greek-sym{font-family:'Georgia',serif;font-size:22px;margin-bottom:4px}
+.greek-name{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.greek-val{font-family:var(--mono);font-size:16px;font-weight:600;margin-bottom:2px}
+.greek-desc{font-size:9px;color:var(--sub)}
+.sim-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bdr);font-size:11px}
+.sim-row:last-child{border-bottom:none;font-weight:600}
+.sim-result{background:var(--s3);border:1px solid var(--bdr);border-radius:6px;padding:12px;margin-top:10px}
+canvas{border-radius:4px;display:block}
+.empty{color:var(--muted);font-size:12px;text-align:center;padding:20px;font-family:var(--mono)}
+.alert{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:5px;padding:8px 12px;font-size:11px;color:var(--red2);margin-top:6px;display:none}
+.alert.show{display:block}
+.ok-msg{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:5px;padding:8px 12px;font-size:11px;color:var(--green2);margin-top:6px;display:none}
+.ok-msg.show{display:block}
+.entry-iv-badge{font-size:9px;font-family:var(--mono);background:rgba(245,158,11,.12);color:#fbbf24;border:1px solid rgba(245,158,11,.25);padding:2px 7px;border-radius:3px}
+.iv-explain{background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.15);border-radius:6px;padding:10px 14px;font-size:11px;color:var(--sub);line-height:1.7}
+.iv-explain b{color:var(--blue2)}
+.order-section{background:var(--s3);border:1px solid var(--bdr);border-radius:6px;padding:12px;margin-bottom:10px}
+.order-section-title{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-weight:500}
+.cost-box{background:var(--s1);border:1px solid var(--bdr);border-radius:6px;padding:12px;margin-top:10px}
+.cost-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.cost-formula{font-family:var(--mono);font-size:12px;color:var(--sub);margin-bottom:6px}
+.cost-total{font-family:var(--mono);font-size:22px;font-weight:600}
+.na-tag{font-family:var(--mono);font-size:10px;color:var(--muted);font-style:italic}
+
+.quote-bar{background:var(--s3);border:1px solid var(--bdr);border-radius:7px;padding:10px 14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.quote-price-big{font-family:var(--mono);font-size:26px;font-weight:600;color:#fbbf24}
+.quote-stat{display:flex;flex-direction:column;padding:0 10px;border-left:1px solid var(--bdr)}
+.quote-stat-k{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
+.quote-stat-v{font-family:var(--mono);font-size:12px;font-weight:600}
+.quote-time{font-size:9px;color:var(--muted);font-family:var(--mono);margin-left:auto}
+.spinning{animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.poly-badge{background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.3);color:var(--cyan2);font-size:9px;font-family:var(--mono);padding:2px 7px;border-radius:3px}
+.quote-err{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:5px;padding:5px 9px;font-size:10px;color:var(--red2);margin-top:6px;display:none}
+.quote-err.show{display:block}
+.no-protect{background:rgba(59,130,246,.05);border:1px dashed rgba(59,130,246,.3);border-radius:7px;padding:12px;text-align:center;color:var(--muted);font-size:11px}
+.protect-card{background:var(--bg);border:1px solid var(--bdr);border-radius:8px;overflow:hidden;margin-bottom:10px}
+.protect-header{background:var(--s3);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bdr)}
+.protect-title{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text)}
+.protect-subtitle{font-size:9px;color:var(--muted)}
+.protect-body{padding:10px 12px}
+.protect-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.pm{background:var(--s3);border:1px solid var(--bdr);border-radius:5px;padding:7px 8px;text-align:center}
+.pm-label{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.pm-val{font-family:var(--mono);font-size:13px;font-weight:600}
+.pm-sub{font-size:8px;color:var(--sub);margin-top:1px}
+.protect-bar{position:relative;height:24px;background:var(--s4);border-radius:5px;overflow:hidden;border:1px solid var(--bdr);margin:6px 0 3px}
+.protect-bar-labels{display:flex;justify-content:space-between;font-size:8px;color:var(--muted);font-family:var(--mono);margin-bottom:2px}
+.pb-zone{position:absolute;top:0;height:100%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;font-family:var(--mono)}
+.pb-loss{background:rgba(239,68,68,.25);color:var(--red2)}.pb-buffer{background:rgba(245,158,11,.2);color:#fbbf24}
+.pb-profit{background:rgba(16,185,129,.2);color:var(--green2)}.pb-capped{background:rgba(56,189,248,.15);color:var(--cyan2)}
+.pb-marker{position:absolute;top:0;width:2px;height:100%;background:rgba(255,255,255,.5)}
+.pb-marker-label{position:absolute;top:-14px;font-size:7px;color:var(--sub);font-family:var(--mono);transform:translateX(-50%);white-space:nowrap}
+
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-brand">TSLA</div>
+  <div class="tb-stat"><span class="tb-k">現貨 S</span><span class="tb-v" id="top-price" style="color:#fbbf24" style="color:#fbbf24">$350.00</span></div>
+  <div class="tb-stat"><span class="tb-k">漲跌</span><span class="tb-v" id="top-chg">—</span></div>
+  <div class="tb-stat"><span class="tb-k">Market IV</span><span class="tb-v" id="top-miv" style="color:var(--purple2)">55.0%</span></div>
+  <div class="tb-stat"><span class="tb-k">Net Delta</span><span class="tb-v" id="top-delta">0.000</span></div>
+  <div class="tb-stat"><span class="tb-k">NAV</span><span class="tb-v" id="top-nav" style="color:var(--cyan2)">$100,000</span></div>
+  <div class="tb-stat"><span class="tb-k">總損益</span><span class="tb-v" id="top-pnl">+$0.00</span></div>
+  <div class="tb-stat"><span class="tb-k">TSLA持股</span><span class="tb-v" id="top-shares">0 股</span></div>
+  <div class="spacer"></div>
+  <div class="live-dot"></div><span class="live-txt">LIVE</span>
+</div>
+
+<div class="nav">
+  <button class="nav-tab on"  onclick="goTab('dashboard')">總覽</button>
+  <button class="nav-tab" onclick="goTab('order')">下單</button>
+  <button class="nav-tab" onclick="goTab('positions')">持倉管理</button>
+  <button class="nav-tab" onclick="goTab('greeks')">希臘字母</button>
+  <button class="nav-tab" onclick="goTab('sim')">情境模擬</button>
+  <button class="nav-tab" onclick="goTab('log')">交易紀錄</button>
+</div>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+<div id="tab-dashboard" class="panel on">
+  
+  <!-- Polygon.io 即時報價 -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="ch" style="margin-bottom:0">即時報價 — TSLA</div>
+        <span class="poly-badge">Polygon.io</span>
+      </div>
+      <button class="btn" style="background:linear-gradient(135deg,#0ea5e9,#3b82f6);color:#fff;display:flex;align-items:center;gap:5px;padding:6px 12px" onclick="fetchQuote()" id="refresh-btn"><span id="refresh-icon">↻</span> 刷新報價</button>
+    </div>
+    <div class="quote-bar">
+      <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;margin-bottom:1px">TSLA 最新</div><div class="quote-price-big" id="q-price">—</div></div>
+      <div style="font-family:var(--mono);font-size:12px;font-weight:500" id="q-change">—</div>
+      <div class="quote-stat"><div class="quote-stat-k">開盤</div><div class="quote-stat-v" id="q-open">—</div></div>
+      <div class="quote-stat"><div class="quote-stat-k">最高</div><div class="quote-stat-v" id="q-high">—</div></div>
+      <div class="quote-stat"><div class="quote-stat-k">最低</div><div class="quote-stat-v" id="q-low">—</div></div>
+      <div class="quote-stat"><div class="quote-stat-k">成交量</div><div class="quote-stat-v" id="q-vol">—</div></div>
+      <div class="quote-stat"><div class="quote-stat-k">VWAP</div><div class="quote-stat-v" id="q-vwap">—</div></div>
+      <div class="quote-stat"><div class="quote-stat-k">ATM IV</div><div class="quote-stat-v" id="q-iv" style="color:var(--purple2)">—</div></div>
+      <div class="quote-time" id="q-time">尚未更新</div>
+    </div>
+    <div class="quote-err" id="quote-err"></div>
+    <div style="margin-top:5px;font-size:9px;color:var(--muted)">Polygon.io 免費版為前一交易日資料。IV 由近月 ATM Call BS 反推計算。</div>
+  </div>
+
+  <!-- 上下行保護分析 -->
+  <div class="card">
+    <div class="ch">組合上下行保護分析（到期損益結構）</div>
+    <div id="protect-container"><div class="no-protect">新增 Long Stock ＋ Short Call 後自動顯示保護分析。</div></div>
+  </div>
+
+  <div class="iv-explain">
+    <b>MTM 定價架構</b>：<b>Market IV</b> 用於所有期權持倉的即時重新定價（MTM）。每筆期權的 <b>Entry IV 在成交時鎖住</b>，永遠不變。現貨持倉以現貨價 S 直接計算，與 IV 無關。
+  </div>
+  <div class="card">
+    <div class="ch">市場參數（MTM 定價）</div>
+    <div class="form-row" style="align-items:flex-end">
+      <div class="fl" style="max-width:160px"><label>現貨 S ($)</label><input type="number" id="g-s" value="350" step="1" oninput="updateAll()"></div>
+      <div class="fl" style="max-width:160px"><label>Market IV (%)</label><input type="number" id="g-miv" value="55" step="0.5" oninput="onMIVChange()"></div>
+      <div class="fl" style="max-width:130px"><label>DTE 預設 (天)</label><input type="number" id="g-dte" value="30" step="1" oninput="updateAll()"></div>
+      <div class="fl" style="max-width:120px"><label>r (%)</label><input type="number" id="g-r" value="5.3" step="0.1" oninput="updateAll()"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch">帳戶概覽</div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi"><div class="kpi-label">資產淨值 NAV</div><div class="kpi-val" id="d-nav" style="color:var(--cyan2)">$100,000</div><div class="kpi-sub">現金＋持倉市值</div></div>
+      <div class="kpi"><div class="kpi-label">總損益</div><div class="kpi-val" id="d-pnl">+$0.00</div><div class="kpi-sub" id="d-pnl-pct">0.00%</div></div>
+      <div class="kpi"><div class="kpi-label">可用現金</div><div class="kpi-val" id="d-cash" style="color:var(--green2)">$100,000</div><div class="kpi-sub">未用資金</div></div>
+      <div class="kpi"><div class="kpi-label">持倉市值</div><div class="kpi-val" id="d-mktval">$0</div><div class="kpi-sub">MTM @ Market IV</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch">組合希臘字母（@ Market IV）</div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi"><div class="kpi-label">Net Δ Delta</div><div class="kpi-val" id="d-delta">0.000</div><div class="kpi-sub">股價風險曝險</div></div>
+      <div class="kpi"><div class="kpi-label">Net Γ Gamma</div><div class="kpi-val" id="d-gamma">0.0000</div><div class="kpi-sub">Delta 變化率</div></div>
+      <div class="kpi"><div class="kpi-label">Net V Vega</div><div class="kpi-val" id="d-vega">0.000</div><div class="kpi-sub">IV +1% 損益</div></div>
+      <div class="kpi"><div class="kpi-label">Net Θ Theta</div><div class="kpi-val" id="d-theta">0.000</div><div class="kpi-sub">每日時間損耗</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch">持倉快覽</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>類型</th><th>方向</th><th>數量</th><th>Strike</th><th>成本/均價</th><th>Entry IV</th><th>MTM 市價</th><th>損益 $</th><th>損益 %</th></tr></thead>
+        <tbody id="dash-pos-body"><tr><td colspan="9" class="empty">尚無持倉</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER -->
+<div id="tab-order" class="panel">
+  <div class="row">
+    <div class="col" style="flex:1;max-width:500px">
+      <div class="card">
+        <div class="ch">委託單建立</div>
+        <div class="order-section">
+          <div class="order-section-title">Step 1 — 買賣方向</div>
+          <div class="seg" id="dir-seg">
+            <button class="on" onclick="setDir('buy',this)">買入 Buy</button>
+            <button onclick="setDir('sell',this)">賣出 Sell</button>
+          </div>
+        </div>
+        <div class="order-section">
+          <div class="order-section-title">Step 2 — 標的類型</div>
+          <div class="seg" id="type-seg">
+            <button onclick="setType('stock',this)">現貨 Stock</button>
+            <button class="on" onclick="setType('call',this)">買權 Call</button>
+            <button onclick="setType('put',this)">賣權 Put</button>
+          </div>
+        </div>
+        <div class="order-section" id="stock-fields" style="display:none">
+          <div class="order-section-title">Step 3 — 現貨參數</div>
+          <div class="form-row">
+            <div class="fl"><label>股數 Shares</label><input type="number" id="o-shares" value="100" step="1" min="1" oninput="updateOrderPreview()"></div>
+            <div class="fl"><label>成交價格 ($ / 股)</label><input type="number" id="o-stock-price" value="350" step="0.01" oninput="updateOrderPreview()"></div>
+          </div>
+        </div>
+        <div class="order-section" id="option-fields">
+          <div class="order-section-title">Step 3 — 期權參數</div>
+          <div class="form-row" style="margin-bottom:10px">
+            <div class="fl"><label>合約口數 Contracts</label><input type="number" id="o-contracts" value="1" step="1" min="1" oninput="updateOrderPreview()"><div style="font-size:9px;color:var(--muted);margin-top:2px">1 口 = 100 股</div></div>
+            <div class="fl"><label>履約價 Strike ($)</label><input type="number" id="o-k" value="355" step="1" oninput="updateOrderPreview()"></div>
+          </div>
+          <div class="form-row" style="margin-bottom:10px">
+            <div class="fl"><label>成交權利金 ($ / 股)</label><input type="number" id="o-premium" value="18.50" step="0.01" oninput="updateOrderPreview()"><div style="font-size:9px;color:var(--muted);margin-top:2px">per share（×100 = 每口成本）</div></div>
+            <div class="fl"><label>到期天數 DTE</label><input type="number" id="o-dte" value="30" step="1" oninput="updateOrderPreview()"></div>
+          </div>
+          <div class="form-row">
+            <div class="fl"><label>Entry IV (%) — 鎖入成本</label><input type="number" id="o-iv" value="55" step="0.5" oninput="updateOrderPreview()"><div style="font-size:9px;color:#fbbf24;margin-top:2px">成交時 IV，永遠鎖住不變</div></div>
+            <div class="fl"><label style="color:var(--purple2)">Market IV（參考，唯讀）</label><input type="number" id="o-miv-ref" disabled style="opacity:.4"><div style="font-size:9px;color:var(--purple2);margin-top:2px">MTM 定價用，非成本依據</div></div>
+          </div>
+        </div>
+        <div class="fl" style="margin-bottom:12px"><label>備註</label><input type="text" id="o-notes" placeholder="選填"></div>
+        <button class="btn btn-buy btn-full" id="submit-btn" onclick="submitOrder()">確認買入</button>
+        <div class="alert" id="order-err"></div>
+        <div class="ok-msg" id="order-ok"></div>
+      </div>
+    </div>
+    <div class="col" style="flex:1">
+      <div class="card">
+        <div class="ch" id="preview-title">期權成本預覽（BS 理論定價）</div>
+        <div id="stock-preview" style="display:none">
+          <div class="cost-box">
+            <div class="cost-label">現貨成交成本計算</div>
+            <div class="cost-formula" id="stock-formula">100 股 × $350.00 / 股</div>
+            <div style="height:1px;background:var(--bdr);margin:8px 0"></div>
+            <div class="cost-label" id="cost-dir-label">買入需付出</div>
+            <div class="cost-total" id="stock-cost-total" style="color:var(--red2)">$35,000.00</div>
+          </div>
+          <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-top:10px">
+            <div class="kpi"><div class="kpi-label">Δ Delta</div><div class="kpi-val" style="color:var(--blue2)" id="stk-delta">+1.000</div><div class="kpi-sub">現貨固定值</div></div>
+            <div class="kpi"><div class="kpi-label">Γ Gamma</div><div class="kpi-val na-tag">N/A</div><div class="kpi-sub">現貨無 Gamma</div></div>
+            <div class="kpi"><div class="kpi-label">V Vega</div><div class="kpi-val na-tag">N/A</div><div class="kpi-sub">現貨無 Vega</div></div>
+            <div class="kpi"><div class="kpi-label">Θ Theta</div><div class="kpi-val na-tag">N/A</div><div class="kpi-sub">現貨無 Theta</div></div>
+          </div>
+        </div>
+        <div id="option-preview">
+          <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+            <div class="kpi"><div class="kpi-label">理論價（Entry IV）</div><div class="kpi-val" id="prev-theo" style="color:#fbbf24">—</div></div>
+            <div class="kpi"><div class="kpi-label">委託權利金</div><div class="kpi-val" id="prev-prem">—</div></div>
+            <div class="kpi"><div class="kpi-label">溢/折價 Edge</div><div class="kpi-val" id="prev-edge">—</div></div>
+          </div>
+          <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:10px">
+            <div class="kpi"><div class="kpi-label">Δ Delta</div><div class="kpi-val" id="prev-d" style="color:var(--blue2)">—</div></div>
+            <div class="kpi"><div class="kpi-label">Γ Gamma</div><div class="kpi-val" id="prev-g" style="color:var(--green2)">—</div></div>
+            <div class="kpi"><div class="kpi-label">V Vega</div><div class="kpi-val" id="prev-v" style="color:var(--purple2)">—</div></div>
+            <div class="kpi"><div class="kpi-label">Θ Theta/d</div><div class="kpi-val" id="prev-t" style="color:var(--red2)">—</div></div>
+          </div>
+          <div class="cost-box">
+            <div class="cost-label">期權成交成本計算</div>
+            <div class="cost-formula" id="opt-formula">1 口 × 100 × $18.50 / 股</div>
+            <div style="height:1px;background:var(--bdr);margin:8px 0"></div>
+            <div class="cost-label" id="opt-dir-label">買入需付出</div>
+            <div class="cost-total" id="opt-cost-total" style="color:var(--red2)">$1,850.00</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:10px;padding:10px 12px">
+          <div class="ch">帳戶狀態</div>
+          <div class="sim-row"><span style="color:var(--sub)">可用現金</span><span id="ord-cash" style="font-family:var(--mono)">$100,000</span></div>
+          <div class="sim-row"><span style="color:var(--sub)">此單需求</span><span id="ord-need" style="font-family:var(--mono)">—</span></div>
+          <div class="sim-row"><span style="color:var(--sub)">下單後剩餘</span><span id="ord-remain" style="font-family:var(--mono)">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- POSITIONS -->
+<div id="tab-positions" class="panel">
+  <!-- 持倉頁保護分析 -->
+  <div class="card">
+    <div class="ch">組合上下行保護分析</div>
+    <div id="protect-container-pos"><div class="no-protect">尚未偵測到 Covered Call 組合。</div></div>
+  </div>
+
+  <div class="card">
+    <div class="ch">持倉明細</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>類型</th><th>方向</th><th>數量</th><th>Strike</th><th>DTE</th><th>均價/成本</th><th>Entry IV</th><th>MTM 市價</th><th>損益 $</th><th>損益 %</th><th>Δ</th><th>Γ</th><th>V</th><th>Θ</th><th>操作</th></tr></thead>
+        <tbody id="pos-body"><tr><td colspan="16" class="empty">尚無持倉</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
+    <div class="kpi"><div class="kpi-label">持倉筆數</div><div class="kpi-val" id="pos-n" style="color:var(--blue2)">0</div></div>
+    <div class="kpi"><div class="kpi-label">未實現損益</div><div class="kpi-val" id="pos-upnl">+$0</div></div>
+    <div class="kpi"><div class="kpi-label">已實現損益</div><div class="kpi-val" id="pos-rpnl">+$0</div></div>
+    <div class="kpi"><div class="kpi-label">Net Delta</div><div class="kpi-val" id="pos-delta">0.000</div></div>
+    <div class="kpi"><div class="kpi-label">Theta / day</div><div class="kpi-val" id="pos-theta">$0</div></div>
+  </div>
+</div>
+
+<!-- GREEKS -->
+<div id="tab-greeks" class="panel">
+  <div class="card">
+    <div class="ch">組合希臘字母（@ Market IV）</div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
+      <div class="greek-card"><div class="greek-sym" style="color:var(--blue2)">Δ</div><div class="greek-name">Delta</div><div class="greek-val" id="gk-delta" style="color:var(--blue2)">0.000</div><div class="greek-desc">每漲 $1 的損益</div></div>
+      <div class="greek-card"><div class="greek-sym" style="color:var(--green2)">Γ</div><div class="greek-name">Gamma</div><div class="greek-val" id="gk-gamma" style="color:var(--green2)">0.0000</div><div class="greek-desc">Delta 變化速率（僅期權）</div></div>
+      <div class="greek-card"><div class="greek-sym" style="color:var(--purple2)">V</div><div class="greek-name">Vega</div><div class="greek-val" id="gk-vega" style="color:var(--purple2)">0.000</div><div class="greek-desc">IV +1% 損益（僅期權）</div></div>
+      <div class="greek-card"><div class="greek-sym" style="color:var(--red2)">Θ</div><div class="greek-name">Theta</div><div class="greek-val" id="gk-theta" style="color:var(--red2)">0.000</div><div class="greek-desc">每日損耗（僅期權）</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch">逐倉分解</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>類型</th><th>方向</th><th>數量</th><th>Strike</th><th>Entry IV</th><th>Market IV</th><th>IV 差異</th><th>Delta</th><th>Gamma</th><th>Vega</th><th>Theta/d</th><th>Vega P&L</th></tr></thead>
+        <tbody id="gk-body"><tr><td colspan="13" class="empty">尚無持倉</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch">P/L 敏感度曲線（雙模式）</div>
+    <div style="font-size:9px;color:var(--sub);background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.2);border-radius:4px;padding:5px 9px;margin-bottom:7px">
+      <b style="color:var(--blue2)">雙曲線模式</b>：「到期損益」顯示持有到期的真實損益（封頂/地板水平線，推薦 Collar/CC）；「MTM 即時損益」顯示現在平倉的損益（Short Gamma 效果使右側向下，屬正常）。
+    </div>
+    <div class="form-row" style="margin-bottom:10px">
+      <div class="fl" style="max-width:200px"><label>分析持倉</label><select id="gk-sel-pos" onchange="drawGreekCurve()"><option value="all">組合加總</option></select></div>
+      <div class="fl" style="max-width:180px"><label>分析項目</label>
+        <select id="gk-sel-greek" onchange="drawGreekCurve()">
+          <option value="expiry">到期損益（封頂/地板）✓</option>
+          <option value="pnl">MTM 即時損益</option>
+          <option value="delta">Delta</option>
+          <option value="gamma">Gamma</option><option value="vega">Vega</option><option value="theta">Theta</option>
+        </select>
+      </div>
+    </div>
+    <div id="curve-legend" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px;font-size:10px;font-family:var(--mono);color:var(--sub)"></div>
+    <div style="position:relative;height:260px"><canvas id="greek-curve" role="img" aria-label="Greek sensitivity curve">Greek curve</canvas></div>
+    <div id="curve-annotations" style="margin-top:6px;font-size:9px;color:var(--sub);font-family:var(--mono)"></div>
+  </div>
+</div>
+
+<!-- SIM -->
+<div id="tab-sim" class="panel">
+  <div class="row" style="align-items:flex-start">
+
+    <!-- 左：設定 + 現況快照 -->
+    <div class="col" style="flex:0 0 270px">
+      <div class="card">
+        <div class="ch">模擬設定</div>
+        <div class="form-row" style="margin-bottom:10px"><div class="fl"><label>選擇持倉</label><select id="sim-pos"><option value="all">組合加總</option></select></div></div>
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="fl"><label>模擬 S ($)</label><input type="number" id="sim-s" step="1"></div>
+          <div class="fl"><label>模擬 Market IV (%)</label><input type="number" id="sim-iv" step="0.5"></div>
+        </div>
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="fl"><label>模擬 DTE (天)</label><input type="number" id="sim-dte" step="1"></div>
+          <div class="fl"><label>MC 路徑數</label><input type="number" id="sim-paths" value="500" step="100" min="100" max="2000"></div>
+        </div>
+        <button class="btn btn-sim btn-full" onclick="runSim()">執行 BS 模擬</button>
+        <!-- 現況快照 -->
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">現況快照（執行前）</div>
+          <div class="sim-row"><span style="color:var(--sub)">現貨 S</span><span id="snap-s" style="font-family:var(--mono)">—</span></div>
+          <div class="sim-row"><span style="color:var(--sub)">Market IV</span><span id="snap-miv" style="font-family:var(--mono)">—</span></div>
+          <div class="sim-row"><span style="color:var(--sub)">目前 MTM P&L</span><span id="snap-pnl" style="font-family:var(--mono)">—</span></div>
+          <div class="sim-row"><span style="color:var(--sub)">Net Delta</span><span id="snap-delta" style="font-family:var(--mono)">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中：歸因分析 -->
+    <div class="col" style="flex:1">
+      <div class="card" style="min-height:320px">
+        <div class="ch">歸因分析（P&L 拆解）</div>
+        <div id="sim-result-area" class="empty" style="margin-top:20px">請設定參數並執行模擬</div>
+      </div>
+    </div>
+
+    <!-- 右：Greeks 快照 + 持倉損益明細 -->
+    <div class="col" style="flex:1">
+      <div class="card">
+        <div class="ch">模擬情境 Greeks 快照</div>
+        <div id="sim-greeks-area"><div class="empty" style="padding:10px">執行後顯示</div></div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <div class="ch">模擬情境持倉損益明細</div>
+        <div id="sim-pos-detail-area"><div class="empty" style="padding:10px">執行後顯示</div></div>
+      </div>
+    </div>
+
+  </div>
+  <div class="card">
+    <div class="ch">P/L 敏感度矩陣（Spot × Market IV）</div>
+    <div style="overflow-x:auto"><div id="sim-heatmap"></div></div>
+  </div>
+  <div class="card">
+    <div class="ch">蒙特卡羅 P/L 分佈</div>
+    <div style="position:relative;height:200px"><canvas id="mc-hist" role="img" aria-label="MC P/L distribution">MC histogram</canvas></div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-top:10px">
+      <div class="kpi"><div class="kpi-label">均值</div><div class="kpi-val" id="mc-mean">—</div></div>
+      <div class="kpi"><div class="kpi-label">中位數</div><div class="kpi-val" id="mc-med">—</div></div>
+      <div class="kpi"><div class="kpi-label">VaR 95%</div><div class="kpi-val" id="mc-var" style="color:var(--red2)">—</div></div>
+      <div class="kpi"><div class="kpi-label">CVaR 95%</div><div class="kpi-val" id="mc-cvar" style="color:var(--red2)">—</div></div>
+      <div class="kpi"><div class="kpi-label">勝率</div><div class="kpi-val" id="mc-wr">—</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOG -->
+<div id="tab-log" class="panel">
+  <div class="row" style="align-items:center">
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);flex:1;gap:10px">
+      <div class="kpi"><div class="kpi-label">交易筆數</div><div class="kpi-val" id="log-n" style="color:var(--blue2)">0</div></div>
+      <div class="kpi"><div class="kpi-label">已實現損益</div><div class="kpi-val" id="log-rpnl">+$0</div></div>
+      <div class="kpi"><div class="kpi-label">勝率</div><div class="kpi-val" id="log-wr">—</div></div>
+      <div class="kpi"><div class="kpi-label">平均損益/筆</div><div class="kpi-val" id="log-avg">—</div></div>
+    </div>
+    <div style="display:flex;gap:8px"><button class="btn btn-clear" onclick="exportLog()">匯出 CSV</button><button class="btn btn-clear" onclick="clearLog()">清空</button></div>
+  </div>
+  <div class="card">
+    <div class="ch">完整交易紀錄</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>時間</th><th>動作</th><th>類型</th><th>方向</th><th>數量/單位</th><th>Strike</th><th>DTE</th><th>成交價</th><th>Entry IV</th><th>理論價</th><th>Δ</th><th>Γ</th><th>V</th><th>Θ</th><th>已實現損益</th><th>總成本</th><th>備註</th></tr></thead>
+        <tbody id="log-body"><tr><td colspan="18" class="empty">尚無交易紀錄</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch">累積已實現損益</div>
+    <div style="position:relative;height:160px"><canvas id="log-chart" role="img" aria-label="Cumulative realised P/L">Cum PnL</canvas></div>
+  </div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+function erf(x){const a=[.254829592,-.284496736,1.421413741,-1.453152027,1.061405429],p=.3275911,s=x<0?-1:1;x=Math.abs(x);const t=1/(1+p*x);return s*(1-(((((a[4]*t+a[3])*t)+a[2])*t+a[1])*t+a[0])*t*Math.exp(-x*x));}
+function N(x){return .5*(1+erf(x/Math.SQRT2))}
+function Npdf(x){return Math.exp(-.5*x*x)/Math.sqrt(2*Math.PI)}
+function bsp(S,K,T,r,iv,type){if(T<=0||iv<=0)return Math.max(type==='call'?S-K:K-S,0);const d1=(Math.log(S/K)+(r+.5*iv*iv)*T)/(iv*Math.sqrt(T)),d2=d1-iv*Math.sqrt(T);return type==='call'?S*N(d1)-K*Math.exp(-r*T)*N(d2):K*Math.exp(-r*T)*N(-d2)-S*N(-d1);}
+function bsg(S,K,T,r,iv,type){if(T<=0||iv<=0)return{d:type==='call'?1:0,g:0,v:0,th:0};const sqT=Math.sqrt(T),d1=(Math.log(S/K)+(r+.5*iv*iv)*T)/(iv*sqT),d2=d1-iv*sqT,pdf=Npdf(d1),erT=Math.exp(-r*T),g=pdf/(S*iv*sqT),v=S*pdf*sqT/100;let d,th;if(type==='call'){d=N(d1);th=(-(S*pdf*iv)/(2*sqT)-r*K*erT*N(d2))/365;}else{d=N(d1)-1;th=(-(S*pdf*iv)/(2*sqT)+r*K*erT*N(-d2))/365;}return{d,g,v,th};}
+function randn(){let u,v;do{u=Math.random()*2-1;v=Math.random()*2-1}while(u*u+v*v>=1||u===0);return u*Math.sqrt(-2*Math.log(u*u+v*v)/(u*u+v*v));}
+
+const ST={cash:100000,positions:[],tradeLog:[],nextId:1,realizedPnl:0,dir:'buy',insType:'call'};
+const CHARTS={};
+const gv=id=>+document.getElementById(id).value||0;
+const gs=id=>document.getElementById(id).value;
+const fmt=n=>(n>=0?'+$':'-$')+Math.abs(n).toFixed(2);
+const fmtPct=n=>(n>=0?'+':'')+n.toFixed(2)+'%';
+const pc=n=>n>=0?'var(--green2)':'var(--red2)';
+function mkt(){return{S:gv('g-s'),miv:gv('g-miv')/100,r:gv('g-r')/100,dte:gv('g-dte')};}
+function mtmBS(pos){const{S,miv,r}=mkt();if(pos.ins==='stock')return{price:S,d:pos.dir,g:0,v:0,th:0};const T=Math.max(pos.dte/365,1e-6);return{price:bsp(S,pos.k,T,r,miv,pos.ins),...bsg(S,pos.k,T,r,miv,pos.ins)};}
+
+function goTab(t){
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelector('.nav-tab[onclick*="\''+t+'\'"]').classList.add('on');
+  document.getElementById('tab-'+t).classList.add('on');
+  if(t==='dashboard')renderDash();
+  if(t==='positions')renderPositions();
+  if(t==='greeks'){renderGreeks();drawGreekCurve();}
+  if(t==='sim')initSim();
+  if(t==='log')renderLog();
+}
+function onMIVChange(){const miv=gv('g-miv');document.getElementById('top-miv').textContent=miv.toFixed(1)+'%';const ref=document.getElementById('o-miv-ref');if(ref)ref.value=miv.toFixed(1);updateAll();}
+function setDir(d,btn){ST.dir=d;document.querySelectorAll('#dir-seg button').forEach(b=>b.className='');btn.className=d==='buy'?'on':'on-sell';const sb=document.getElementById('submit-btn');sb.textContent=d==='buy'?'確認買入':'確認賣出';sb.className='btn btn-full '+(d==='buy'?'btn-buy':'btn-sell');updateOrderPreview();}
+function setType(t,btn){ST.insType=t;document.querySelectorAll('#type-seg button').forEach(b=>b.className='');btn.className='on';const isStock=t==='stock';document.getElementById('stock-fields').style.display=isStock?'block':'none';document.getElementById('option-fields').style.display=isStock?'none':'block';document.getElementById('stock-preview').style.display=isStock?'block':'none';document.getElementById('option-preview').style.display=isStock?'none':'block';document.getElementById('preview-title').textContent=isStock?'現貨成本預覽':'期權成本預覽（BS 理論定價）';updateOrderPreview();}
+
+function updateOrderPreview(){
+  const{S,miv,r}=mkt();const dir=ST.dir,ins=ST.insType,isBuy=dir==='buy';
+  document.getElementById('ord-cash').textContent='$'+ST.cash.toFixed(2);
+  document.getElementById('o-miv-ref').value=gv('g-miv').toFixed(1);
+  if(ins==='stock'){
+    const shares=gv('o-shares')||0,price=gv('o-stock-price')||S,total=shares*price;
+    document.getElementById('stock-formula').textContent=shares+' 股 × $'+price.toFixed(2)+' / 股';
+    document.getElementById('cost-dir-label').textContent=isBuy?'買入需付出':'賣出收入';
+    document.getElementById('stock-cost-total').textContent='$'+total.toFixed(2);
+    document.getElementById('stock-cost-total').style.color=isBuy?'var(--red2)':'var(--green2)';
+    document.getElementById('stk-delta').textContent=isBuy?'+1.000':'-1.000';
+    const remain=ST.cash-(isBuy?total:-total);
+    document.getElementById('ord-need').textContent='$'+total.toFixed(2);
+    document.getElementById('ord-remain').textContent='$'+remain.toFixed(2);
+    document.getElementById('ord-remain').style.color=remain<0?'var(--red2)':'var(--green2)';
+  } else {
+    const contracts=gv('o-contracts')||1,K=gv('o-k'),premium=gv('o-premium'),dte=gv('o-dte'),entryIV=gv('o-iv')/100;
+    const T=Math.max(dte/365,1e-6),theo=bsp(S,K,T,r,entryIV,ins),grk=bsg(S,K,T,r,entryIV,ins);
+    const edge=premium-theo,total=contracts*100*premium;
+    document.getElementById('prev-theo').textContent='$'+theo.toFixed(2);
+    document.getElementById('prev-prem').textContent='$'+premium.toFixed(2);
+    document.getElementById('prev-edge').textContent=(edge>=0?'+':'')+edge.toFixed(2);
+    document.getElementById('prev-edge').style.color=edge>0.01?'var(--red2)':edge<-0.01?'var(--green2)':'var(--sub)';
+    document.getElementById('prev-d').textContent=grk.d.toFixed(4);
+    document.getElementById('prev-g').textContent=grk.g.toFixed(5);
+    document.getElementById('prev-v').textContent=grk.v.toFixed(4);
+    document.getElementById('prev-t').textContent=grk.th.toFixed(4);
+    document.getElementById('opt-formula').textContent=contracts+' 口 × 100 × $'+premium.toFixed(2)+' / 股';
+    document.getElementById('opt-dir-label').textContent=isBuy?'買入需付出':'賣出收入';
+    document.getElementById('opt-cost-total').textContent='$'+total.toFixed(2);
+    document.getElementById('opt-cost-total').style.color=isBuy?'var(--red2)':'var(--green2)';
+    const remain=ST.cash-(isBuy?total:-total);
+    document.getElementById('ord-need').textContent='$'+total.toFixed(2);
+    document.getElementById('ord-remain').textContent='$'+remain.toFixed(2);
+    document.getElementById('ord-remain').style.color=remain<0?'var(--red2)':'var(--green2)';
+  }
+}
+
+function submitOrder(){
+  const{S,miv,r}=mkt();const ins=ST.insType,dir=ST.dir==='buy'?1:-1,notes=gs('o-notes');
+  const err=document.getElementById('order-err'),ok=document.getElementById('order-ok');
+  err.className='alert';ok.className='ok-msg';
+  let pos,total,theo=null,grk={d:0,g:0,v:0,th:0},logQtyLabel,logK='—',logDTE=0,logPrice,logEntryIV='—';
+  if(ins==='stock'){
+    const shares=gv('o-shares'),price=gv('o-stock-price');
+    if(shares<=0){err.textContent='股數必須 > 0';err.className='alert show';return;}
+    if(price<=0){err.textContent='價格必須 > 0';err.className='alert show';return;}
+    total=shares*price;
+    if(dir===1&&total>ST.cash){err.textContent='現金不足，需 $'+total.toFixed(2);err.className='alert show';return;}
+    pos={id:ST.nextId++,ins:'stock',dir,qty:shares,k:price,dte:0,avgPrice:price,entryIV:null,notes};
+    grk={d:dir,g:0,v:0,th:0};theo=price;logQtyLabel=shares+'股';logPrice=price;
+  } else {
+    const contracts=gv('o-contracts'),K=gv('o-k'),dte=gv('o-dte'),premium=gv('o-premium'),entryIV=gv('o-iv')/100;
+    if(contracts<=0){err.textContent='口數必須 > 0';err.className='alert show';return;}
+    if(premium<=0){err.textContent='權利金必須 > 0';err.className='alert show';return;}
+    total=contracts*100*premium;
+    if(dir===1&&total>ST.cash){err.textContent='現金不足，需 $'+total.toFixed(2);err.className='alert show';return;}
+    const T=Math.max(dte/365,1e-6);theo=bsp(S,K,T,r,entryIV,ins);grk=bsg(S,K,T,r,entryIV,ins);
+    pos={id:ST.nextId++,ins,dir,qty:contracts,k:K,dte,avgPrice:premium,entryIV,notes};
+    logQtyLabel=contracts+'口';logK=K;logDTE=dte;logPrice=premium;logEntryIV=(entryIV*100).toFixed(1)+'%';
+  }
+  ST.positions.push(pos);ST.cash-=dir>0?total:-total;
+  ST.tradeLog.push({time:new Date().toLocaleTimeString(),action:dir>0?'BUY':'SELL',ins,dir,qtyLabel:logQtyLabel,K:logK,dte:logDTE,price:logPrice,entryIV:logEntryIV,theo:theo!=null?+theo.toFixed(4):null,d:+grk.d.toFixed(4),g:+grk.g.toFixed(5),v:+grk.v.toFixed(4),th:+grk.th.toFixed(4),rpnl:0,totalCost:total,notes});
+  const label=ins==='stock'?pos.qty+'股 @ $'+logPrice.toFixed(2):pos.qty+'口 '+ins.toUpperCase()+' $'+pos.k+' @ $'+logPrice.toFixed(2)+' (Entry IV '+logEntryIV+')';
+  ok.textContent=(dir>0?'買入':'賣出')+' '+label+' | 總成本 $'+total.toFixed(2);
+  ok.className='ok-msg show';setTimeout(()=>ok.className='ok-msg',5000);updateAll();
+}
+
+function calcPosPnL(pos){
+  const bs=mtmBS(pos);
+  if(pos.ins==='stock'){const{S}=mkt();const pnl=(S-pos.avgPrice)*pos.qty*pos.dir,pnlPct=(S/pos.avgPrice-1)*100*pos.dir;return{...bs,pnl,pnlPct,mtmValue:S*pos.qty};}
+  const pnl=(bs.price-pos.avgPrice)*pos.qty*100*pos.dir,pnlPct=pos.avgPrice>0?(bs.price/pos.avgPrice-1)*100*pos.dir:0;
+  return{...bs,pnl,pnlPct,mtmValue:bs.price*pos.qty*100*pos.dir};
+}
+
+function renderPositions(){
+  renderProtection('protect-container-pos');
+  const{S,miv}=mkt();const tbody=document.getElementById('pos-body');
+  if(!ST.positions.length){tbody.innerHTML='<tr><td colspan="16" class="empty">尚無持倉</td></tr>';setPosSummary(0,0,0,0,0);return;}
+  let uPnl=0,netD=0,netTh=0;
+  tbody.innerHTML=ST.positions.map(p=>{
+    const{pnl,pnlPct,d,g,v,th}=calcPosPnL(p);
+    uPnl+=pnl;netD+=p.ins==='stock'?p.dir*p.qty:d*p.dir*p.qty*100;netTh+=p.ins==='stock'?0:th*p.dir*p.qty*100;
+    const tc=p.ins==='stock'?'b-stk':p.ins==='call'?'b-call':'b-put',isStock=p.ins==='stock';
+    const{S:curS}=mkt();const mtmPriceLabel=isStock?'$'+curS.toFixed(2)+'/股':'$'+mtmBS(p).price.toFixed(2)+'/株';
+    return`<tr><td style="color:var(--muted)">${p.id}</td><td><span class="badge ${tc}">${p.ins.toUpperCase()}</span></td><td><span class="badge ${p.dir>0?'b-long':'b-short'}">${p.dir>0?'L':'S'}</span></td><td>${isStock?p.qty+'股':p.qty+'口'}</td><td>${!isStock?'$'+p.k.toFixed(0):'—'}</td><td>${!isStock?p.dte+'d':'—'}</td><td style="font-family:var(--mono)">$${p.avgPrice.toFixed(2)}/股</td><td>${isStock?'<span style="color:var(--muted);font-size:10px">N/A</span>':'<span class="entry-iv-badge">'+((p.entryIV||0)*100).toFixed(1)+'%</span>'}</td><td style="font-family:var(--mono);color:#fbbf24">${isStock?'$'+curS.toFixed(2)+'/股':'$'+mtmBS(p).price.toFixed(2)+'/股'}</td><td style="font-family:var(--mono);font-weight:500;color:${pc(pnl)}">${fmt(pnl)}</td><td style="font-family:var(--mono);color:${pc(pnlPct)}">${fmtPct(pnlPct)}</td><td style="font-family:var(--mono);color:var(--blue2)">${(isStock?p.dir:d*p.dir).toFixed(3)}</td><td style="font-family:var(--mono);color:var(--green2)">${isStock?'—':g.toFixed(5)}</td><td style="font-family:var(--mono);color:var(--purple2)">${isStock?'—':v.toFixed(4)}</td><td style="font-family:var(--mono);color:var(--red2)">${isStock?'—':th.toFixed(4)}</td><td><button class="btn btn-sell" style="padding:3px 10px;font-size:10px" onclick="closePos(${p.id})">平倉</button></td></tr>`;
+  }).join('');
+  setPosSummary(ST.positions.length,uPnl,ST.realizedPnl,netD,netTh);
+}
+function setPosSummary(n,u,r,d,th){const s=(id,v,c)=>{const el=document.getElementById(id);el.textContent=v;if(c)el.style.color=c;};s('pos-n',n);s('pos-upnl',fmt(u),pc(u));s('pos-rpnl',fmt(r),pc(r));s('pos-delta',d.toFixed(3),pc(d));s('pos-theta','$'+(th*100).toFixed(2));}
+function closePos(id){
+  const i=ST.positions.findIndex(p=>p.id===id);if(i<0)return;
+  const p=ST.positions[i],{pnl}=calcPosPnL(p),{S,miv}=mkt();
+  const closePrice=p.ins==='stock'?S:mtmBS(p).price,total=p.ins==='stock'?closePrice*p.qty:closePrice*p.qty*100;
+  ST.cash+=p.dir>0?total:-total;ST.realizedPnl+=pnl;
+  ST.tradeLog.push({time:new Date().toLocaleTimeString(),action:'CLOSE',ins:p.ins,dir:-p.dir,qtyLabel:p.ins==='stock'?p.qty+'股':p.qty+'口',K:p.ins==='stock'?'—':p.k,dte:p.dte,price:+closePrice.toFixed(2),entryIV:p.entryIV?(p.entryIV*100).toFixed(1)+'%':'N/A',theo:+closePrice.toFixed(2),d:p.ins==='stock'?p.dir:+mtmBS(p).d.toFixed(4),g:0,v:0,th:0,rpnl:+pnl.toFixed(2),totalCost:total,notes:'平倉 @ Market IV '+(miv*100).toFixed(1)+'%'});
+  ST.positions.splice(i,1);updateAll();
+}
+
+function renderDash(){
+  renderProtection('protect-container');
+  const{S,miv}=mkt();let nav=ST.cash,uPnl=0,mktVal=0,nd=0,ng=0,nv=0,nt=0,shares=0;
+  ST.positions.forEach(p=>{const{pnl,d,g,v,th,mtmValue}=calcPosPnL(p);mktVal+=mtmValue;nav+=mtmValue;uPnl+=pnl;nd+=p.ins==='stock'?p.dir*p.qty:d*p.dir*p.qty*100;ng+=p.ins==='stock'?0:g*p.dir*p.qty*100;nv+=p.ins==='stock'?0:v*p.dir*p.qty*100;nt+=p.ins==='stock'?0:th*p.dir*p.qty*100;if(p.ins==='stock')shares+=p.qty*p.dir;});
+  const totalPnl=uPnl+ST.realizedPnl,pnlPct=totalPnl/100000*100;
+  const s=(id,v,c)=>{const el=document.getElementById(id);if(!el)return;el.textContent=v;if(c)el.style.color=c;};
+  s('d-nav','$'+nav.toFixed(2));s('d-pnl',fmt(totalPnl),pc(totalPnl));s('d-pnl-pct',fmtPct(pnlPct),pc(pnlPct));s('d-cash','$'+ST.cash.toFixed(2));s('d-mktval','$'+mktVal.toFixed(2));s('d-delta',nd.toFixed(3),pc(nd));s('d-gamma',ng.toFixed(4));s('d-vega',nv.toFixed(3));s('d-theta',(nt*100).toFixed(3),pc(nt*100));s('top-price','$'+S.toFixed(2));s('top-miv',(miv*100).toFixed(1)+'%');s('top-delta',nd.toFixed(3),pc(nd));s('top-nav','$'+nav.toFixed(2));s('top-pnl',fmt(totalPnl),pc(totalPnl));s('top-shares',shares+'股');
+  const db=document.getElementById('dash-pos-body');
+  if(!ST.positions.length){db.innerHTML='<tr><td colspan="9" class="empty">尚無持倉</td></tr>';return;}
+  db.innerHTML=ST.positions.map(p=>{const{pnl,pnlPct}=calcPosPnL(p);const{S:cS}=mkt();const tc=p.ins==='stock'?'b-stk':p.ins==='call'?'b-call':'b-put',isStock=p.ins==='stock',mtmP=isStock?cS:mtmBS(p).price;return`<tr><td><span class="badge ${tc}">${p.ins.toUpperCase()}</span></td><td><span class="badge ${p.dir>0?'b-long':'b-short'}">${p.dir>0?'L':'S'}</span></td><td>${isStock?p.qty+'股':p.qty+'口'}</td><td>${isStock?'—':'$'+p.k.toFixed(0)}</td><td style="font-family:var(--mono)">$${p.avgPrice.toFixed(2)}/股</td><td>${isStock?'<span style="color:var(--muted);font-size:10px">N/A</span>':'<span class="entry-iv-badge">'+((p.entryIV||0)*100).toFixed(1)+'%</span>'}</td><td style="font-family:var(--mono);color:#fbbf24">$${mtmP.toFixed(2)}/股</td><td style="font-family:var(--mono);color:${pc(pnl)};font-weight:500">${fmt(pnl)}</td><td style="font-family:var(--mono);color:${pc(pnlPct)}">${fmtPct(pnlPct)}</td></tr>`;}).join('');
+}
+
+function renderGreeks(){
+  const{S,miv,r}=mkt();let nd=0,ng=0,nv=0,nt=0;
+  const sel=document.getElementById('gk-sel-pos'),simSel=document.getElementById('sim-pos');
+  sel.innerHTML='<option value="all">組合加總</option>';simSel.innerHTML='<option value="all">組合加總</option>';
+  const tbody=document.getElementById('gk-body');
+  if(!ST.positions.length){tbody.innerHTML='<tr><td colspan="13" class="empty">尚無持倉</td></tr>';return;}
+  tbody.innerHTML=ST.positions.map(p=>{
+    const isStock=p.ins==='stock',bs=mtmBS(p),pd=isStock?p.dir*p.qty:bs.d*p.dir*p.qty*100,pg=isStock?0:bs.g*p.dir*p.qty*100,pv=isStock?0:bs.v*p.dir*p.qty*100,pt=isStock?0:bs.th*p.dir*p.qty*100;
+    nd+=pd;ng+=pg;nv+=pv;nt+=pt;
+    const ivDiff=!isStock?((miv-(p.entryIV||0))*100).toFixed(1):null,vegaPL=!isStock?+(pv*parseFloat(ivDiff)).toFixed(2):null;
+    sel.innerHTML+=`<option value="${p.id}">#${p.id} ${p.ins.toUpperCase()}${!isStock?' $'+p.k:''}</option>`;
+    simSel.innerHTML+=`<option value="${p.id}">#${p.id} ${p.ins.toUpperCase()}${!isStock?' $'+p.k:''}</option>`;
+    const tc=isStock?'b-stk':p.ins==='call'?'b-call':'b-put';
+    return`<tr><td style="color:var(--muted)">${p.id}</td><td><span class="badge ${tc}">${p.ins.toUpperCase()}</span></td><td><span class="badge ${p.dir>0?'b-long':'b-short'}">${p.dir>0?'L':'S'}</span></td><td>${isStock?p.qty+'股':p.qty+'口'}</td><td>${!isStock?'$'+p.k.toFixed(0):'—'}</td><td>${!isStock?'<span class="entry-iv-badge">'+((p.entryIV||0)*100).toFixed(1)+'%</span>':'<span style="color:var(--muted);font-size:10px">N/A</span>'}</td><td style="font-family:var(--mono);color:var(--purple2)">${!isStock?(miv*100).toFixed(1)+'%':'—'}</td><td style="font-family:var(--mono);color:${ivDiff!=null?(+ivDiff>0?'var(--red2)':+ivDiff<0?'var(--green2)':'var(--sub)'):'var(--sub)'}">${ivDiff!=null?(+ivDiff>=0?'+':'')+ivDiff+'%':'—'}</td><td style="font-family:var(--mono);color:var(--blue2)">${pd.toFixed(3)}</td><td style="font-family:var(--mono);color:var(--green2)">${isStock?'—':pg.toFixed(5)}</td><td style="font-family:var(--mono);color:var(--purple2)">${isStock?'—':pv.toFixed(4)}</td><td style="font-family:var(--mono);color:var(--red2)">${isStock?'—':pt.toFixed(4)}</td><td style="font-family:var(--mono);color:${vegaPL!=null?pc(vegaPL):'var(--sub)'}">${vegaPL!=null?fmt(vegaPL):'—'}</td></tr>`;
+  }).join('');
+  document.getElementById('gk-delta').textContent=nd.toFixed(3);document.getElementById('gk-delta').style.color=pc(nd);document.getElementById('gk-gamma').textContent=ng.toFixed(5);document.getElementById('gk-vega').textContent=nv.toFixed(4);document.getElementById('gk-theta').textContent=(nt*100).toFixed(3);document.getElementById('gk-theta').style.color=pc(nt*100);
+}
+
+function drawGreekCurve(){
+  const{S,miv,r}=mkt();
+  const posId=gs('gk-sel-pos'),greek=gs('gk-sel-greek');
+  const positions=posId==='all'?ST.positions:ST.positions.filter(p=>p.id===+posId);
+  if(!positions.length){
+    if(CHARTS.gc){CHARTS.gc.destroy();CHARTS.gc=null;}
+    document.getElementById('curve-legend').innerHTML='';
+    document.getElementById('curve-annotations').innerHTML='';
+    return;
+  }
+  const nPts=120,spots=[];
+  for(let i=0;i<=nPts;i++)spots.push(S*0.55+i*(S*0.90/nPts));
+
+  // ── 計算每個 spot 的損益貢獻 ──
+  // MTM：用 BS 理論價，反映「現在平倉」的損益
+  function mtmContrib(pos,s,gtype){
+    const T=Math.max(pos.dte/365,1e-6);
+    if(pos.ins==='stock'){
+      if(gtype==='pnl'||gtype==='expiry')return(s-pos.avgPrice)*pos.qty*pos.dir;
+      if(gtype==='delta')return pos.dir*pos.qty;
+      return 0;
+    }
+    const pr=bsp(s,pos.k,T,r,miv,pos.ins);
+    const gr=bsg(s,pos.k,T,r,miv,pos.ins);
+    const mult=pos.qty*100*pos.dir;
+    if(gtype==='pnl')return(pr-pos.avgPrice)*mult;
+    if(gtype==='delta')return gr.d*mult;
+    if(gtype==='gamma')return gr.g*mult;
+    if(gtype==='vega')return gr.v*mult;
+    if(gtype==='theta')return gr.th*mult;
+    return 0;
+  }
+
+  // 到期損益：用 clamp 公式，不依賴 BS，正確顯示封頂/地板
+  function expiryContrib(pos,s){
+    if(pos.ins==='stock')return(s-pos.avgPrice)*pos.qty*pos.dir;
+    if(pos.ins==='call'&&pos.dir===-1){
+      // Short Call：收到權利金，義務上行
+      return(pos.avgPrice-Math.max(0,s-pos.k))*pos.qty*100;
+    }
+    if(pos.ins==='call'&&pos.dir===1){
+      // Long Call
+      return(Math.max(0,s-pos.k)-pos.avgPrice)*pos.qty*100;
+    }
+    if(pos.ins==='put'&&pos.dir===-1){
+      // Short Put
+      return(pos.avgPrice-Math.max(0,pos.k-s))*pos.qty*100;
+    }
+    if(pos.ins==='put'&&pos.dir===1){
+      // Long Put：保護下行
+      return(Math.max(0,pos.k-s)-pos.avgPrice)*pos.qty*100;
+    }
+    return 0;
+  }
+
+  const COLORS=['#60a5fa','#f87171','#34d399','#fbbf24','#a78bfa'];
+  const datasets=[];
+
+  if(greek==='expiry'){
+    // ── 到期損益模式：每腿虛線 + 組合合計實線 ──
+    const totalExpiry=spots.map(s=>positions.reduce((sum,p)=>sum+expiryContrib(p,s),0));
+
+    // 各腿虛線
+    if(posId==='all'&&positions.length>1){
+      positions.forEach((pos,i)=>{
+        const col=COLORS[i%5];
+        const lbl=(pos.ins==='stock'?'Stock':
+          (pos.dir>0?'L ':'S ')+pos.ins.toUpperCase()+' $'+pos.k);
+        datasets.push({
+          label:lbl,
+          data:spots.map(s=>+expiryContrib(pos,s).toFixed(2)),
+          borderColor:col,borderWidth:1.2,pointRadius:0,
+          borderDash:[5,4],fill:false,tension:0
+        });
+      });
+    }
+    // 組合合計（實線，含正確封頂/地板）
+    datasets.push({
+      label:'到期損益（合計）',
+      data:totalExpiry.map(v=>+v.toFixed(2)),
+      borderColor:'#22c55e',borderWidth:3,pointRadius:0,tension:0,
+      fill:{target:'origin',above:'rgba(34,197,94,0.08)',below:'rgba(239,68,68,0.08)'}
+    });
+
+    // B/E 和 max/min 標注
+    let beSpots=[];
+    for(let i=1;i<totalExpiry.length;i++){
+      if((totalExpiry[i-1]<0&&totalExpiry[i]>=0)||(totalExpiry[i-1]>=0&&totalExpiry[i]<0)){
+        beSpots.push((spots[i-1]+spots[i])/2);
+      }
+    }
+    const maxPnl=Math.max(...totalExpiry),minPnl=Math.min(...totalExpiry);
+    const annEl=document.getElementById('curve-annotations');
+    let ann=`<span style="color:var(--yellow2)">▎ S=${S.toFixed(0)}</span>`;
+    beSpots.forEach(be=>ann+=`　<span style="color:var(--sub)">⟺ B/E≈$${be.toFixed(1)}</span>`);
+    ann+=`　<span style="color:var(--green2)">▲ Max=${fmt(maxPnl)}</span>`;
+    if(minPnl<0)ann+=`　<span style="color:var(--red2)">▼ Floor=${fmt(minPnl)}</span>`;
+    annEl.innerHTML=ann;
+
+  } else if(greek==='pnl'){
+    // ── MTM 模式：各腿虛線 + 組合合計實線（BS 定價）──
+    const totalMTM=spots.map(s=>positions.reduce((sum,p)=>sum+mtmContrib(p,s,'pnl'),0));
+
+    if(posId==='all'&&positions.length>1){
+      positions.forEach((pos,i)=>{
+        const col=COLORS[i%5];
+        const lbl=(pos.ins==='stock'?'Stock':
+          (pos.dir>0?'L ':'S ')+pos.ins.toUpperCase()+' $'+pos.k);
+        datasets.push({
+          label:lbl,
+          data:spots.map(s=>+mtmContrib(pos,s,'pnl').toFixed(2)),
+          borderColor:col,borderWidth:1.2,pointRadius:0,
+          borderDash:[5,4],fill:false
+        });
+      });
+    }
+    datasets.push({
+      label:'MTM 損益（合計）',
+      data:totalMTM.map(v=>+v.toFixed(2)),
+      borderColor:'#60a5fa',borderWidth:3,pointRadius:0,
+      fill:{target:'origin',above:'rgba(96,165,250,0.07)',below:'rgba(239,68,68,0.07)'}
+    });
+
+    let beSpots=[];
+    for(let i=1;i<totalMTM.length;i++){
+      if((totalMTM[i-1]<0&&totalMTM[i]>=0)||(totalMTM[i-1]>=0&&totalMTM[i]<0))
+        beSpots.push((spots[i-1]+spots[i])/2);
+    }
+    const maxPnl=Math.max(...totalMTM),minPnl=Math.min(...totalMTM);
+    const annEl=document.getElementById('curve-annotations');
+    let ann=`<span style="color:var(--yellow2)">▎ S=${S.toFixed(0)}</span>　<span style="color:var(--muted);font-size:9px">⚠ MTM曲線：Collar右側向下為正常 Short Gamma，非到期損益</span>`;
+    beSpots.forEach(be=>ann+=`　<span style="color:var(--sub)">⟺ B/E≈$${be.toFixed(1)}</span>`);
+    annEl.innerHTML=ann;
+
+  } else {
+    // ── Greeks 模式（Delta/Gamma/Vega/Theta）──
+    const totalVals=spots.map(s=>positions.reduce((sum,p)=>sum+mtmContrib(p,s,greek),0));
+    if(posId==='all'&&positions.length>1){
+      positions.forEach((pos,i)=>{
+        datasets.push({
+          label:(pos.ins==='stock'?'Stock':(pos.dir>0?'L ':'S ')+pos.ins.toUpperCase()+' $'+pos.k),
+          data:spots.map(s=>+mtmContrib(pos,s,greek).toFixed(4)),
+          borderColor:COLORS[i%5],borderWidth:1.2,pointRadius:0,borderDash:[5,4],fill:false
+        });
+      });
+    }
+    datasets.push({
+      label:greek.toUpperCase(),
+      data:totalVals.map(v=>+v.toFixed(4)),
+      borderColor:'#60a5fa',borderWidth:2.5,pointRadius:0,
+      fill:{target:'origin',above:'rgba(96,165,250,0.06)',below:'rgba(239,68,68,0.06)'}
+    });
+    document.getElementById('curve-annotations').innerHTML=
+      `<span style="color:var(--yellow2)">▎ S=${S.toFixed(0)}</span>`;
+  }
+
+  // ── 畫圖 ──
+  const ctx=document.getElementById('greek-curve').getContext('2d');
+  if(CHARTS.gc)CHARTS.gc.destroy();
+  CHARTS.gc=new Chart(ctx,{
+    type:'line',
+    data:{labels:spots.map(s=>'$'+s.toFixed(0)),datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{
+          display:datasets.length>1,position:'bottom',
+          labels:{color:'#94a3b8',font:{size:9},boxWidth:14,padding:8,
+            filter:item=>item.datasetIndex<datasets.length}
+        }
+      },
+      scales:{
+        x:{ticks:{color:'#4b6280',font:{size:9},maxTicksLimit:10},grid:{color:'#2a355044'}},
+        y:{ticks:{color:'#94a3b8',font:{size:9},
+            callback:v=>v>=0?'+$'+v.toFixed(0):'-$'+Math.abs(v).toFixed(0)},
+          grid:{color:'#2a355044'}}
+      }
+    }
+  });
+
+  // ── 圖例 ──
+  const legendEl=document.getElementById('curve-legend');
+  legendEl.innerHTML='';
+  datasets.forEach(ds=>{
+    const li=document.createElement('div');li.className='legend-item';
+    const isDash=ds.borderDash&&ds.borderDash.length>0;
+    li.innerHTML=`<div class="legend-dot" style="background:${ds.borderColor};opacity:${isDash?0.6:1};height:${isDash?2:3}px"></div><span style="opacity:${isDash?0.7:1}">${ds.label}</span>`;
+    legendEl.appendChild(li);
+  });
+}
+
+// ══ 策略偵測（Collar / Covered Call / Cash-Secured Put）══
+function detectStrategies(){
+  const stocks=ST.positions.filter(p=>p.ins==='stock'&&p.dir===1);
+  const shortCalls=ST.positions.filter(p=>p.ins==='call'&&p.dir===-1);
+  const longPuts=ST.positions.filter(p=>p.ins==='put'&&p.dir===1);
+  const shortPuts=ST.positions.filter(p=>p.ins==='put'&&p.dir===-1);
+  const strategies=[];
+  const usedSC=new Set(),usedLP=new Set();
+  stocks.forEach(stk=>{
+    shortCalls.forEach(sc=>{
+      if(usedSC.has(sc.id))return;
+      longPuts.forEach(lp=>{
+        if(usedLP.has(lp.id))return;
+        const shares=Math.min(stk.qty,sc.qty*100,lp.qty*100);
+        const rat=shares/Math.max(stk.qty,sc.qty*100,lp.qty*100);
+        if(rat>0.4){strategies.push({type:'collar',stk,sc,lp,shares,rat});usedSC.add(sc.id);usedLP.add(lp.id);}
+      });
+    });
+  });
+  const usedSC2=new Set(usedSC);
+  stocks.forEach(stk=>{
+    shortCalls.forEach(sc=>{
+      if(usedSC2.has(sc.id))return;
+      const shares=Math.min(stk.qty,sc.qty*100);
+      const rat=shares/Math.max(stk.qty,sc.qty*100);
+      if(rat>0.5){strategies.push({type:'cc',stk,sc,shares,rat});usedSC2.add(sc.id);}
+    });
+  });
+  shortPuts.forEach(sp=>strategies.push({type:'csp',sc:sp}));
+  return strategies;
+}
+function detectCC(){return detectStrategies();}
+
+function renderProtection(cid){
+  const strategies=detectStrategies();
+  const el=document.getElementById(cid);if(!el)return;
+  if(!strategies.length){el.innerHTML='<div class="no-protect">尚未偵測到可分析的組合。<br>新增 Long Stock + Short Call 為 Covered Call，再加 Long Put 升級為 Collar。</div>';return;}
+  el.innerHTML=strategies.map((s,i)=>buildStratCard(s,i)).join('');
+  strategies.forEach((s,i)=>{if(s.type==='collar')drawCollarChart(s,i);else if(s.type==='cc')drawCCChart(s,i);});
+}
+
+function buildStratCard(strat,idx){
+  const{S}=mkt();
+  if(strat.type==='collar'){
+    const{stk,sc,lp,shares}=strat;
+    const cost=stk.avgPrice,callK=sc.k,callP=sc.avgPrice,putK=lp.k,putP=lp.avgPrice;
+    const be=cost-callP+putP;
+    const maxProfit=(callK-be)*shares;
+    const maxLoss=(putK-be)*shares;
+    const netPrem=(callP-putP)*shares;
+    const upCapPct=(callK-S)/S*100,floorPct=(putK-S)/S*100;
+    const curPL=(Math.min(Math.max(S,putK),callK)-be)*shares;
+    const rMin=putK*0.75,rMax=callK*1.25,tot=rMax-rMin;
+    const floorW=Math.max(0,(putK-rMin)/tot*100);
+    const neutralW=Math.max(0,(callK-putK)/tot*100);
+    const capW=Math.max(0,(rMax-callK)/tot*100);
+    const sPos=Math.max(2,Math.min(97,(S-rMin)/tot*100));
+    const bePos=Math.max(2,Math.min(97,(be-rMin)/tot*100));
+    return `<div class="collar-card">
+<div class="collar-header">
+  <div>
+    <div class="collar-title">🔒 Collar — #${stk.id} Stock × #${sc.id} Short Call $${callK} × #${lp.id} Long Put $${putK}</div>
+    <div class="collar-subtitle">上行封頂: $${callK}　下行地板: $${putK}　淨權利金: ${netPrem>=0?'+':''}$${netPrem.toFixed(0)}　DTE Call:${sc.dte}d Put:${lp.dte}d</div>
+  </div>
+  <div style="text-align:right">
+    <div style="font-family:var(--mono);font-size:11px;color:${pc(curPL)}">${fmt(curPL)}</div>
+    <div style="font-size:8px;color:var(--muted)">到期損益估算</div>
+  </div>
+</div>
+<div class="collar-body">
+<div class="collar-legs">
+  <div class="collar-leg"><div class="collar-leg-title"><span class="badge b-stk">STOCK</span> Long #${stk.id}</div><div class="collar-leg-val" style="color:var(--green2)">$${cost.toFixed(2)}/股</div><div style="font-size:8px;color:var(--muted);margin-top:2px">${stk.qty}股　成本 $${(cost*stk.qty).toFixed(0)}</div></div>
+  <div class="collar-leg"><div class="collar-leg-title"><span class="badge b-short">S</span> Call $${callK}</div><div class="collar-leg-val" style="color:var(--yellow2)">+$${callP.toFixed(2)}/股</div><div style="font-size:8px;color:var(--muted);margin-top:2px">收入 $${(callP*sc.qty*100).toFixed(0)}　Entry IV ${(sc.entryIV*100).toFixed(1)}%</div></div>
+  <div class="collar-leg"><div class="collar-leg-title"><span class="badge b-long">L</span> Put $${putK}</div><div class="collar-leg-val" style="color:var(--red2)">-$${putP.toFixed(2)}/股</div><div style="font-size:8px;color:var(--muted);margin-top:2px">成本 $${(putP*lp.qty*100).toFixed(0)}　Entry IV ${(lp.entryIV*100).toFixed(1)}%</div></div>
+</div>
+<div class="collar-metrics">
+  <div class="pm"><div class="pm-label">最大獲利（到期）</div><div class="pm-val" style="color:var(--green2)">+$${maxProfit.toFixed(0)}</div><div class="pm-sub">S ≥ $${callK}</div></div>
+  <div class="pm"><div class="pm-label">最大虧損（到期）</div><div class="pm-val" style="color:var(--red2)">$${maxLoss.toFixed(0)}</div><div class="pm-sub">S ≤ $${putK}</div></div>
+  <div class="pm"><div class="pm-label">Break-even</div><div class="pm-val" style="color:var(--yellow2)">$${be.toFixed(2)}</div><div class="pm-sub">成本-Call+Put</div></div>
+  <div class="pm"><div class="pm-label">下行地板</div><div class="pm-val" style="color:var(--blue2)">$${putK}</div><div class="pm-sub">${floorPct.toFixed(1)}% vs S</div></div>
+  <div class="pm"><div class="pm-label">上行封頂</div><div class="pm-val" style="color:var(--purple2)">$${callK}</div><div class="pm-sub">${upCapPct>=0?'+':''}${upCapPct.toFixed(1)}% vs S</div></div>
+</div>
+<div class="protect-bar-labels"><span>$${rMin.toFixed(0)}</span><span style="color:var(--blue2)">← 地板</span><span style="color:var(--green2)">獲利區</span><span style="color:var(--purple2)">封頂 →</span><span>$${rMax.toFixed(0)}</span></div>
+<div class="protect-bar">
+  <div class="pb-zone" style="left:0;width:${floorW}%;background:rgba(56,189,248,.2);color:var(--cyan2)">${floorW>8?'地板':''}</div>
+  <div class="pb-zone" style="left:${floorW}%;width:${neutralW}%;background:rgba(16,185,129,.15);color:var(--green2)">${neutralW>10?'獲利區':''}</div>
+  <div class="pb-zone" style="left:${floorW+neutralW}%;width:${capW}%;background:rgba(139,92,246,.15);color:var(--purple2)">${capW>8?'封頂':''}</div>
+  <div class="pb-marker" style="left:${floorW}%"><div class="pb-marker-label" style="color:var(--cyan2)">Put $${putK}</div></div>
+  <div class="pb-marker" style="left:${floorW+neutralW}%;background:rgba(139,92,246,.8)"><div class="pb-marker-label" style="color:var(--purple2)">Call $${callK}</div></div>
+  <div class="pb-marker" style="left:${bePos}%;background:rgba(251,191,36,.8)"><div class="pb-marker-label" style="color:var(--yellow2)">B/E $${be.toFixed(1)}</div></div>
+  <div class="pb-marker" style="left:${sPos}%;background:rgba(255,255,255,.9)"><div class="pb-marker-label" style="color:#fff">S $${S.toFixed(0)}</div></div>
+</div>
+<div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:8px 0 3px">到期損益圖（三腿合計 ＋ 各腿拆解）</div>
+<div style="position:relative;height:160px"><canvas id="ex-${idx}">Collar Expiry P/L</canvas></div>
+<div class="collar-scenario">
+  <div class="cs-box" style="background:rgba(56,189,248,.06);border-color:rgba(56,189,248,.25)"><div style="font-size:8px;color:var(--cyan2);text-transform:uppercase;margin-bottom:3px">下行 S ≤ $${putK}</div><div style="font-family:var(--mono);font-size:12px;color:var(--red2)">${fmt(maxLoss)}</div><div style="font-size:8px;color:var(--sub);margin-top:2px">Put 保護，損失鎖定</div></div>
+  <div class="cs-box" style="background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.25)"><div style="font-size:8px;color:var(--green2);text-transform:uppercase;margin-bottom:3px">中性 S ≈ $${be.toFixed(0)}</div><div style="font-family:var(--mono);font-size:12px;color:var(--yellow2)">$0 損益平衡</div><div style="font-size:8px;color:var(--sub);margin-top:2px">B/E = 成本 - Call + Put</div></div>
+  <div class="cs-box" style="background:rgba(139,92,246,.06);border-color:rgba(139,92,246,.25)"><div style="font-size:8px;color:var(--purple2);text-transform:uppercase;margin-bottom:3px">上行 S ≥ $${callK}</div><div style="font-family:var(--mono);font-size:12px;color:var(--green2)">+${fmt(maxProfit)}</div><div style="font-size:8px;color:var(--sub);margin-top:2px">Call 封頂</div></div>
+</div>
+</div></div>`;
+  }
+  if(strat.type==='cc'){
+    const{stk,sc,shares}=strat;
+    const cost=stk.avgPrice,K=sc.k,prem=sc.avgPrice;
+    const be=cost-prem,maxP=(K-cost+prem)*shares,downPct=prem/cost*100,upCapPct=(K-S)/S*100;
+    const rMin=Math.max(0,cost*0.4),rMax=cost*1.6,tot=rMax-rMin;
+    const lossW=Math.max(0,(be-rMin)/tot*100),bufW=Math.max(0,(cost-be)/tot*100),profW=Math.max(0,(K-cost)/tot*100),capW=Math.max(0,(rMax-K)/tot*100);
+    const sPos=Math.max(2,Math.min(97,(S-rMin)/tot*100));
+    return `<div class="protect-card"><div class="protect-header"><div><div class="protect-title">Covered Call — #${stk.id} Stock × #${sc.id} Short Call $${K}</div><div class="protect-subtitle">DTE: ${sc.dte}d  Entry IV: ${(sc.entryIV*100).toFixed(1)}%  覆蓋率: ${(strat.rat*100).toFixed(0)}%</div></div><div style="text-align:right"><div style="font-family:var(--mono);font-size:11px;color:${pc((S-be)*shares)}">${fmt((S-be)*shares)}</div><div style="font-size:8px;color:var(--muted)">相對 B/E</div></div></div><div class="protect-body"><div class="protect-metrics"><div class="pm"><div class="pm-label">最大獲利</div><div class="pm-val" style="color:var(--green2)">+$${maxP.toFixed(0)}</div><div class="pm-sub">+$${(K-cost+prem).toFixed(2)}/股</div></div><div class="pm"><div class="pm-label">上行封頂</div><div class="pm-val" style="color:var(--blue2)">$${K}</div><div class="pm-sub">${upCapPct>=0?'+':''}${upCapPct.toFixed(1)}% vs S</div></div><div class="pm"><div class="pm-label">Break-even</div><div class="pm-val" style="color:var(--yellow2)">$${be.toFixed(2)}</div><div class="pm-sub">緩衝 ${downPct.toFixed(1)}%</div></div><div class="pm"><div class="pm-label">權利金收入</div><div class="pm-val" style="color:var(--purple2)">$${(prem*shares).toFixed(0)}</div><div class="pm-sub">$${prem.toFixed(2)}/股</div></div></div><div class="protect-bar-labels"><span>$${rMin.toFixed(0)}</span><span style="color:var(--red2)">← 虧損</span><span style="color:var(--yellow2)">緩衝</span><span style="color:var(--green2)">獲利 →</span><span style="color:var(--blue2)">封頂</span><span>$${rMax.toFixed(0)}</span></div><div class="protect-bar"><div class="pb-zone pb-loss" style="left:0;width:${lossW}%">${lossW>8?'虧損':''}</div><div class="pb-zone pb-buffer" style="left:${lossW}%;width:${bufW}%">${bufW>8?'緩衝':''}</div><div class="pb-zone pb-profit" style="left:${lossW+bufW}%;width:${profW}%">${profW>8?'獲利':''}</div><div class="pb-zone pb-capped" style="left:${lossW+bufW+profW}%;width:${capW}%">${capW>8?'封頂':''}</div><div class="pb-marker" style="left:${lossW}%"><div class="pb-marker-label" style="color:var(--yellow2)">B/E $${be.toFixed(1)}</div></div><div class="pb-marker" style="left:${lossW+bufW+profW}%;background:rgba(56,189,248,.8)"><div class="pb-marker-label" style="color:var(--cyan2)">K $${K}</div></div><div class="pb-marker" style="left:${sPos}%;background:rgba(255,255,255,.9)"><div class="pb-marker-label" style="color:#fff">S $${S.toFixed(0)}</div></div></div><div style="position:relative;height:110px;margin-top:6px"><canvas id="ex-${idx}">Expiry P/L</canvas></div></div></div>`;
+  }
+  if(strat.type==='csp'){
+    const sp=strat.sc,K=sp.k,prem=sp.avgPrice,qty=sp.qty;
+    return `<div class="protect-card"><div class="protect-header"><div><div class="protect-title">Cash-Secured Put — #${sp.id} Short Put $${K}</div><div class="protect-subtitle">DTE: ${sp.dte}d  Entry IV: ${(sp.entryIV*100).toFixed(1)}%</div></div></div><div class="protect-body"><div class="protect-metrics"><div class="pm"><div class="pm-label">最大獲利</div><div class="pm-val" style="color:var(--green2)">+$${(prem*qty*100).toFixed(0)}</div></div><div class="pm"><div class="pm-label">Break-even</div><div class="pm-val" style="color:var(--yellow2)">$${(K-prem).toFixed(2)}</div></div><div class="pm"><div class="pm-label">獲利條件</div><div class="pm-val" style="color:var(--blue2)">S>$${K}</div></div><div class="pm"><div class="pm-label">最大風險</div><div class="pm-val" style="color:var(--red2)">-$${((K-prem)*qty*100).toFixed(0)}</div></div></div></div></div>`;
+  }
+  return '';
+}
+
+function drawCollarChart(strat,idx){
+  const{stk,sc,lp,shares}=strat;
+  const cost=stk.avgPrice,callK=sc.k,callP=sc.avgPrice,putK=lp.k,putP=lp.avgPrice;
+  const canvas=document.getElementById('ex-'+idx);if(!canvas)return;
+  const rangeMin=putK*0.65,rangeMax=callK*1.35,nPts=100;
+  const spots=[],netPL=[],stkLine=[],callLine=[],putLine=[];
+  for(let i=0;i<=nPts;i++){
+    const s=rangeMin+i*(rangeMax-rangeMin)/nPts;
+    spots.push(s);
+    const stkPL=(s-cost)*stk.qty;
+    const scPL=(callP-Math.max(0,s-callK))*sc.qty*100;
+    const lpPL=(Math.max(0,putK-s)-putP)*lp.qty*100;
+    stkLine.push(+stkPL.toFixed(2));
+    callLine.push(+scPL.toFixed(2));
+    putLine.push(+lpPL.toFixed(2));
+    netPL.push(+(stkPL+scPL+lpPL).toFixed(2));
+  }
+  const ctx=canvas.getContext('2d');if(CHARTS['ex'+idx])CHARTS['ex'+idx].destroy();
+  CHARTS['ex'+idx]=new Chart(ctx,{type:'line',data:{labels:spots.map(s=>'$'+s.toFixed(0)),datasets:[
+    {label:'Stock',data:stkLine,borderColor:'#34d399',borderWidth:1.2,pointRadius:0,borderDash:[5,3],fill:false},
+    {label:'Short Call',data:callLine,borderColor:'#f87171',borderWidth:1.2,pointRadius:0,borderDash:[5,3],fill:false},
+    {label:'Long Put',data:putLine,borderColor:'#60a5fa',borderWidth:1.2,pointRadius:0,borderDash:[5,3],fill:false},
+    {label:'Collar 合計',data:netPL,borderColor:'#22c55e',borderWidth:3,pointRadius:0,fill:{target:'origin',above:'rgba(34,197,94,0.1)',below:'rgba(239,68,68,0.1)'}},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#94a3b8',font:{size:9},boxWidth:14,padding:8}}},scales:{x:{ticks:{color:'#4b6280',font:{size:8},maxTicksLimit:8},grid:{color:'#2a355044'}},y:{ticks:{color:'#94a3b8',font:{size:8},callback:v=>v>=0?'+$'+v.toFixed(0):'-$'+Math.abs(v).toFixed(0)},grid:{color:'#2a355044'}}}}});
+}
+
+function drawCCChart(strat,idx){
+  const{stk,sc,shares}=strat;
+  const cost=stk.avgPrice,K=sc.k,prem=sc.avgPrice;
+  const canvas=document.getElementById('ex-'+idx);if(!canvas)return;
+  const spots=[],pls=[];
+  for(let i=0;i<=60;i++){const s=cost*0.65+i*(cost*0.7/60);spots.push(s);pls.push(+(Math.min(s,K)-cost+prem)*shares);}
+  const ctx=canvas.getContext('2d');if(CHARTS['ex'+idx])CHARTS['ex'+idx].destroy();
+  CHARTS['ex'+idx]=new Chart(ctx,{type:'line',data:{labels:spots.map(s=>'$'+s.toFixed(0)),datasets:[{data:pls,label:'CC P/L',borderColor:'#22c55e',borderWidth:2,pointRadius:0,fill:{target:'origin',above:'rgba(34,197,94,0.1)',below:'rgba(239,68,68,0.1)'}}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4b6280',font:{size:8},maxTicksLimit:6},grid:{color:'#2a355044'}},y:{ticks:{color:'#94a3b8',font:{size:8},callback:v=>v>=0?'+$'+v.toFixed(0):'-$'+Math.abs(v).toFixed(0)},grid:{color:'#2a355044'}}}}});
+}
+
+function initSim(){
+  const{S,miv,dte}=mkt();
+  document.getElementById('sim-s').value=S;
+  document.getElementById('sim-iv').value=(miv*100).toFixed(1);
+  document.getElementById('sim-dte').value=dte;
+  // 現況快照
+  let curPnl=0,curDelta=0;
+  ST.positions.forEach(p=>{
+    const{pnl,d}=calcPosPnL(p);
+    curPnl+=pnl;
+    curDelta+=p.ins==='stock'?p.dir*p.qty:d*p.dir*p.qty*100;
+  });
+  const ss=(id,v,c)=>{const el=document.getElementById(id);if(el){el.textContent=v;if(c)el.style.color=c;}};
+  ss('snap-s','$'+S.toFixed(2));
+  ss('snap-miv',(miv*100).toFixed(1)+'%');
+  ss('snap-pnl',fmt(curPnl),pc(curPnl));
+  ss('snap-delta',curDelta.toFixed(3),pc(curDelta));
+  renderGreeks();
+}
+
+function calcSimPL(S_sim,miv_sim,dte_sim,r){
+  const positions=gs('sim-pos')==='all'?ST.positions:ST.positions.filter(p=>p.id===+gs('sim-pos'));
+  return positions.reduce((sum,p)=>{
+    if(p.ins==='stock')return sum+(S_sim-p.avgPrice)*p.qty*p.dir;
+    const T=Math.max(dte_sim/365,1e-6);
+    return sum+(bsp(S_sim,p.k,T,r,miv_sim/100,p.ins)-p.avgPrice)*p.qty*100*p.dir;
+  },0);
+}
+
+function runSim(){
+  const{S:S0,miv:miv0,r}=mkt();
+  const S_sim=gv('sim-s'),miv_sim=gv('sim-iv'),dte_sim=gv('sim-dte');
+  const positions=gs('sim-pos')==='all'?ST.positions:ST.positions.filter(p=>p.id===+gs('sim-pos'));
+  if(!positions.length){
+    document.getElementById('sim-result-area').innerHTML='<div class="empty">請先新增持倉</div>';
+    return;
+  }
+  const pl=calcSimPL(S_sim,miv_sim,dte_sim,r);
+  const dS=S_sim-S0,dMIV=miv_sim-(miv0*100),dDTE=dte_sim-gv('g-dte');
+
+  // 歸因分析
+  const plD=positions.reduce((a,p)=>{
+    if(p.ins==='stock')return a+dS*p.qty*p.dir;
+    const T=Math.max(p.dte/365,1e-6);
+    return a+bsg(S0,p.k,T,r,miv0,p.ins).d*dS*p.qty*100*p.dir;
+  },0);
+  const plG=positions.reduce((a,p)=>{
+    if(p.ins==='stock')return a;
+    const T=Math.max(p.dte/365,1e-6);
+    return a+0.5*bsg(S0,p.k,T,r,miv0,p.ins).g*dS*dS*p.qty*100*p.dir;
+  },0);
+  const plV=positions.reduce((a,p)=>{
+    if(p.ins==='stock')return a;
+    const T=Math.max(p.dte/365,1e-6);
+    return a+bsg(S0,p.k,T,r,miv0,p.ins).v*dMIV*p.qty*100*p.dir;
+  },0);
+  const plT=positions.reduce((a,p)=>{
+    if(p.ins==='stock')return a;
+    const T=Math.max(p.dte/365,1e-6);
+    return a+bsg(S0,p.k,T,r,miv0,p.ins).th*(-dDTE)*p.qty*100*p.dir;
+  },0);
+
+  const rows=[
+    ['Δ Delta 貢獻',plD],['Γ Gamma 貢獻',plG],
+    ['V Vega 貢獻',plV],['Θ Theta 貢獻',plT],['合計 P&L',pl]
+  ];
+  document.getElementById('sim-result-area').innerHTML=`
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
+      <div class="kpi"><div class="kpi-label">ΔS</div><div class="kpi-val" style="color:${pc(dS)}">${dS>=0?'+':''}$${dS.toFixed(1)}</div></div>
+      <div class="kpi"><div class="kpi-label">ΔMarket IV</div><div class="kpi-val" style="color:${pc(dMIV)}">${dMIV>=0?'+':''}${dMIV.toFixed(1)}%</div></div>
+      <div class="kpi"><div class="kpi-label">ΔDTE</div><div class="kpi-val" style="color:var(--sub)">${dDTE>=0?'+':''}${dDTE}d</div></div>
+      <div class="kpi"><div class="kpi-label">Entry IV（鎖）</div><div class="kpi-val" style="font-size:12px">${positions.filter(p=>p.ins!=='stock').map(p=>((p.entryIV||0)*100).toFixed(0)+'%').join(' ')||'N/A'}</div></div>
+    </div>
+    <div class="sim-result">${rows.map((rw,i)=>`<div class="sim-row"><span style="color:var(--sub)">${rw[0]}</span><span style="font-family:var(--mono);color:${pc(rw[1])};font-weight:${i===rows.length-1?600:400}">${fmt(rw[1])}</span></div>`).join('')}</div>`;
+
+  // Heatmap
+  const nS=8,nIV=6,sR=0.3,ivR=0.5,mv0=miv0*100,hs=[],hi=[];
+  for(let i=0;i<nS;i++)hs.push(S0*(1-sR)+i*(S0*sR*2/(nS-1)));
+  for(let j=0;j<nIV;j++)hi.push(Math.max(mv0*(1-ivR)+j*(mv0*ivR*2/(nIV-1)),5));
+  let htable='<table style="border-collapse:collapse;font-family:var(--mono);font-size:10px"><tr><th style="padding:3px 5px;color:var(--muted)">MIV\S</th>';
+  hs.forEach(s=>htable+=`<th style="padding:3px 5px;color:var(--muted)">$${s.toFixed(0)}</th>`);
+  htable+='</tr>';
+  hi.slice().reverse().forEach(iv=>{
+    htable+=`<tr><th style="padding:3px 5px;color:var(--purple2)">${iv.toFixed(0)}%</th>`;
+    hs.forEach(s=>{
+      const v=calcSimPL(s,iv,dte_sim,r);
+      const mx=Math.max(...hs.map(ss=>Math.abs(calcSimPL(ss,iv,dte_sim,r))))||50000;
+      const ratio=Math.max(0,Math.min(1,(v+mx)/(mx*2)));
+      const rr=Math.round(200*(1-ratio)),gg=Math.round(150*ratio);
+      htable+=`<td style="padding:2px 5px;text-align:center;background:rgba(${rr},${gg},50,0.45);color:${v>=0?'var(--green2)':'var(--red2)'};font-weight:500">${v>=0?'+':''}${v.toFixed(0)}</td>`;
+    });
+    htable+='</tr>';
+  });
+  document.getElementById('sim-heatmap').innerHTML=htable+'</table>';
+
+  // Greeks 快照（右側）
+  let simND=0,simNG=0,simNV=0,simNT=0;
+  positions.forEach(p=>{
+    if(p.ins==='stock'){simND+=p.dir*p.qty;}
+    else{
+      const T=Math.max(dte_sim/365,1e-6);
+      const gr=bsg(S_sim,p.k,T,r,miv_sim/100,p.ins);
+      simND+=gr.d*p.dir*p.qty*100;
+      simNG+=gr.g*p.dir*p.qty*100;
+      simNV+=gr.v*p.dir*p.qty*100;
+      simNT+=gr.th*p.dir*p.qty*100;
+    }
+  });
+  let curND=0;
+  ST.positions.forEach(p=>{const bs=mtmBS(p);curND+=p.ins==='stock'?p.dir*p.qty:bs.d*p.dir*p.qty*100;});
+  const dDelta=simND-curND;
+  const sgEl=document.getElementById('sim-greeks-area');
+  if(sgEl)sgEl.innerHTML=`<div class="kpi-grid" style="grid-template-columns:repeat(2,1fr)">
+    <div class="kpi"><div class="kpi-label">Sim Δ Delta</div><div class="kpi-val" style="font-size:15px;color:var(--blue2)">${simND.toFixed(3)}</div><div class="kpi-sub" style="color:${pc(dDelta)}">Δ ${dDelta>=0?'+':''}${dDelta.toFixed(2)} vs 現況</div></div>
+    <div class="kpi"><div class="kpi-label">Sim Γ Gamma</div><div class="kpi-val" style="font-size:15px;color:var(--green2)">${simNG.toFixed(4)}</div></div>
+    <div class="kpi"><div class="kpi-label">Sim V Vega</div><div class="kpi-val" style="font-size:15px;color:var(--purple2)">${simNV.toFixed(3)}</div></div>
+    <div class="kpi"><div class="kpi-label">Sim Θ/day</div><div class="kpi-val" style="font-size:15px;color:var(--red2)">$${(simNT*100).toFixed(2)}</div></div>
+  </div>`;
+
+  // 持倉損益明細（右側）
+  const spEl=document.getElementById('sim-pos-detail-area');
+  if(spEl){
+    let detailHTML=positions.map(p=>{
+      let simPrice,simPnl;
+      if(p.ins==='stock'){simPrice=S_sim;simPnl=(S_sim-p.avgPrice)*p.qty*p.dir;}
+      else{
+        const T=Math.max(dte_sim/365,1e-6);
+        simPrice=bsp(S_sim,p.k,T,r,miv_sim/100,p.ins);
+        simPnl=(simPrice-p.avgPrice)*p.qty*100*p.dir;
+      }
+      const{pnl:curPnl}=calcPosPnL(p);
+      const pnlChange=simPnl-curPnl;
+      const tc=p.ins==='stock'?'b-stk':p.ins==='call'?'b-call':'b-put';
+      return`<div style="background:var(--s3);border:1px solid var(--bdr);border-radius:5px;padding:8px;margin-bottom:6px">
+        <div style="font-size:8px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--bdr)">
+          <span class="badge ${tc}" style="margin-right:4px">${p.ins.toUpperCase()}</span>${p.ins!=='stock'?'$'+p.k+' ':''}<span class="badge ${p.dir>0?'b-long':'b-short'}">${p.dir>0?'L':'S'}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;font-size:9px">
+          <div><div style="color:var(--muted)">成本</div><div style="font-family:var(--mono);margin-top:1px">$${p.avgPrice.toFixed(2)}</div></div>
+          <div><div style="color:var(--muted)">模擬市價</div><div style="font-family:var(--mono);color:#fbbf24;margin-top:1px">$${simPrice.toFixed(2)}</div></div>
+          <div><div style="color:var(--muted)">模擬損益</div><div style="font-family:var(--mono);color:${pc(simPnl)};font-weight:600;margin-top:1px">${fmt(simPnl)}</div></div>
+          <div style="grid-column:span 3"><div style="color:var(--muted)">vs 現況</div><div style="font-family:var(--mono);color:${pc(pnlChange)};margin-top:1px">${fmt(curPnl)} → ${fmt(simPnl)} <span>(${pnlChange>=0?'+':''}$${pnlChange.toFixed(0)})</span></div></div>
+        </div>
+      </div>`;
+    }).join('');
+    detailHTML+=`<div style="background:var(--s4);border:1px solid var(--bdr);border-radius:5px;padding:7px 9px">
+      <div style="display:flex;justify-content:space-between;font-size:11px">
+        <span style="color:var(--sub)">組合模擬總損益</span>
+        <span style="font-family:var(--mono);font-weight:600;color:${pc(pl)}">${fmt(pl)}</span>
+      </div>
+    </div>`;
+    spEl.innerHTML=detailHTML;
+  }
+
+  // Monte Carlo
+  const paths=Math.min(gv('sim-paths'),2000);
+  const T=Math.max(dte_sim/365,1e-6),ivm=miv_sim/100;
+  const steps=Math.max(dte_sim,5),dt=T/steps,pls=[];
+  for(let p=0;p<paths;p++){
+    let S=S0;
+    for(let s=0;s<steps;s++)S*=Math.exp((r-.5*ivm*ivm)*dt+ivm*Math.sqrt(dt)*randn());
+    pls.push(calcSimPL(S,miv_sim,0,r));
+  }
+  pls.sort((a,b)=>a-b);
+  const mean=pls.reduce((a,b)=>a+b,0)/paths;
+  const med=pls[Math.floor(paths/2)];
+  const var95=pls[Math.floor(paths*.05)];
+  const cvar=pls.slice(0,Math.floor(paths*.05)).reduce((a,b)=>a+b,0)/Math.max(Math.floor(paths*.05),1);
+  const wr=pls.filter(v=>v>0).length/paths*100;
+  const sv=(id,v,c)=>{const el=document.getElementById(id);if(el){el.textContent=v;if(c)el.style.color=c;}};
+  sv('mc-mean',(mean>=0?'+$':'-$')+Math.abs(mean).toFixed(0),pc(mean));
+  sv('mc-med',(med>=0?'+$':'-$')+Math.abs(med).toFixed(0),pc(med));
+  sv('mc-var','$'+var95.toFixed(0),'var(--red2)');
+  sv('mc-cvar','$'+cvar.toFixed(0),'var(--red2)');
+  sv('mc-wr',wr.toFixed(1)+'%',wr>50?'var(--green2)':'var(--red2)');
+
+  const bins=30,mn=pls[0],mx2=pls[pls.length-1],bw=(mx2-mn)/bins||1;
+  const freq=new Array(bins).fill(0);
+  pls.forEach(v=>{let b=Math.floor((v-mn)/bw);if(b>=bins)b=bins-1;freq[b]++;});
+  const ctx=document.getElementById('mc-hist').getContext('2d');
+  if(CHARTS.mc)CHARTS.mc.destroy();
+  CHARTS.mc=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:freq.map((_,i)=>'$'+(mn+i*bw).toFixed(0)),
+      datasets:[{data:freq,backgroundColor:freq.map((_,i)=>(mn+i*bw)>=0?'rgba(34,197,94,0.7)':'rgba(239,68,68,0.7)'),borderRadius:2}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#4b6280',font:{size:8},maxTicksLimit:10},grid:{color:'#2a355044'}},
+              y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'#2a355044'}}}}
+  });
+}
+
+function renderLog(){
+  const tbody=document.getElementById('log-body');
+  if(!ST.tradeLog.length){
+    tbody.innerHTML='<tr><td colspan="18" class="empty">尚無交易紀錄</td></tr>';
+    setLogSummary(0,0,0,0);return;
+  }
+  tbody.innerHTML=ST.tradeLog.slice().reverse().map((t,i)=>{
+    const ac=t.action==='BUY'?'b-long':t.action==='SELL'?'b-short':'b-stk';
+    const tc=t.ins==='stock'?'b-stk':t.ins==='call'?'b-call':'b-put';
+    return`<tr>
+      <td style="color:var(--muted)">${ST.tradeLog.length-i}</td>
+      <td style="font-size:9px;color:var(--sub)">${t.time}</td>
+      <td><span class="badge ${ac}">${t.action}</span></td>
+      <td><span class="badge ${tc}">${t.ins.toUpperCase()}</span></td>
+      <td><span class="badge ${t.dir>0?'b-long':'b-short'}">${t.dir>0?'L':'S'}</span></td>
+      <td>${t.qtyLabel}</td>
+      <td style="font-family:var(--mono)">${t.K}</td>
+      <td>${t.dte?t.dte+'d':'—'}</td>
+      <td style="font-family:var(--mono)">$${(+t.price).toFixed(2)}/股</td>
+      <td>${t.ins==='stock'?'<span style="color:var(--muted);font-size:9px">N/A</span>':'<span class="entry-iv-badge">'+t.entryIV+'</span>'}</td>
+      <td style="font-family:var(--mono);color:var(--yellow2)">${t.theo!=null?'$'+t.theo:'=市價'}</td>
+      <td style="font-family:var(--mono);color:var(--blue2)">${t.d}</td>
+      <td style="font-family:var(--mono);color:var(--green2)">${t.ins==='stock'?'—':t.g}</td>
+      <td style="font-family:var(--mono);color:var(--purple2)">${t.ins==='stock'?'—':t.v}</td>
+      <td style="font-family:var(--mono);color:var(--red2)">${t.ins==='stock'?'—':t.th}</td>
+      <td style="font-family:var(--mono);color:${pc(t.rpnl)};font-weight:${t.rpnl!==0?600:400}">${t.rpnl!==0?fmt(t.rpnl):'—'}</td>
+      <td style="font-family:var(--mono);color:${t.dir>0?'var(--red2)':'var(--green2)'}">$${(+t.totalCost).toFixed(0)}</td>
+      <td style="color:var(--sub);font-size:9px">${t.notes||'—'}</td>
+    </tr>`;
+  }).join('');
+  const total=ST.tradeLog.reduce((a,t)=>a+t.rpnl,0);
+  const closed=ST.tradeLog.filter(t=>t.rpnl!==0);
+  const wins=closed.filter(t=>t.rpnl>0).length;
+  setLogSummary(ST.tradeLog.length,total,closed.length?wins/closed.length*100:0,closed.length?total/closed.length:0);
+  const cum=[];let run=0;
+  ST.tradeLog.forEach(t=>{run+=t.rpnl;cum.push(run);});
+  const ctx=document.getElementById('log-chart').getContext('2d');
+  if(CHARTS.lc)CHARTS.lc.destroy();
+  CHARTS.lc=new Chart(ctx,{
+    type:'line',
+    data:{labels:ST.tradeLog.map((_,i)=>'#'+(i+1)),datasets:[{data:cum,borderColor:'#3b82f6',borderWidth:2,pointRadius:2,pointBackgroundColor:'#3b82f6',fill:{target:'origin',above:'rgba(59,130,246,0.07)',below:'rgba(239,68,68,0.07)'}}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#4b6280',font:{size:9}},grid:{color:'#2a355044'}},
+              y:{ticks:{color:'#94a3b8',font:{size:9},callback:v=>'$'+v.toFixed(0)},grid:{color:'#2a355044'}}}}
+  });
+}
+
+function setLogSummary(n,rp,wr,avg){
+  const s=(id,v,c)=>{const el=document.getElementById(id);if(el){el.textContent=v;if(c)el.style.color=c;}};
+  s('log-n',n);s('log-rpnl',fmt(rp),pc(rp));
+  s('log-wr',wr>0?wr.toFixed(0)+'%':'—',wr>=50?'var(--green2)':'var(--red2)');
+  s('log-avg',avg!==0?(avg>=0?'+$':'-$')+Math.abs(avg).toFixed(0):'—',pc(avg));
+}
+
+function exportLog(){
+  if(!ST.tradeLog.length){alert('無交易紀錄');return;}
+  const h=['#','時間','動作','類型','方向','數量','Strike','DTE','成交價','Entry IV','理論價','Delta','Gamma','Vega','Theta','已實現損益','總成本','備註'];
+  const rows=ST.tradeLog.map((t,i)=>[i+1,t.time,t.action,t.ins,t.dir>0?'LONG':'SHORT',t.qtyLabel,t.K,t.dte||'—',t.price,t.entryIV,t.theo||'=市價',t.d,t.g,t.v,t.th,t.rpnl,t.totalCost,t.notes]);
+  const csv=[h,...rows].map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='TSLA_trade_log.csv';a.click();
+}
+
+function clearLog(){
+  if(confirm('確定清空所有交易紀錄？')){ST.tradeLog=[];ST.realizedPnl=0;renderLog();}
+}
+
+function updateAll(){
+  renderDash();
+  const active=document.querySelector('.panel.on');
+  if(active){
+    if(active.id==='tab-positions')renderPositions();
+    if(active.id==='tab-greeks'){renderGreeks();drawGreekCurve();}
+    if(active.id==='tab-sim')initSim();
+    if(active.id==='tab-log')renderLog();
+  }
+  updateOrderPreview();
+}
+
+
+
+window.addEventListener('load',()=>{
+  setType('call',document.querySelectorAll('#type-seg button')[1]);
+  onMIVChange();updateAll();fetchQuote();
+});
+</script>
+</body>
+</html>
